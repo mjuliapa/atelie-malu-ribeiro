@@ -69,7 +69,7 @@ export default function AdminAgendaPage() {
       setSlots(enriched)
     }
     setLoading(false)
-  }, [weekStart, supabase])
+  }, [weekStart])
 
   useEffect(() => {
     loadSlots()
