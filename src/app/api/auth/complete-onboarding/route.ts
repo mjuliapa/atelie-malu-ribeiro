@@ -1,30 +1,52 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { createServerClient } from '@supabase/ssr'
+import { createClient as createSupabaseAdmin } from '@supabase/supabase-js'
 
 export async function POST(request: NextRequest) {
   try {
     const { fullName, phone } = await request.json()
 
-    const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 })
+    // Pega sessão do usuário via cookies da request
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() { return request.cookies.getAll() },
+          setAll() {},
+        },
+      }
+    )
 
-    const adminSupabase = await createAdminClient()
-    const { error } = await adminSupabase
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return NextResponse.json({ error: 'Não autenticado.' }, { status: 401 })
+    }
+
+    // Admin client sem cookies — usa service_role direto
+    const admin = createSupabaseAdmin(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+
+    const { error } = await admin
       .from('profiles')
       .update({ full_name: fullName, phone, onboarding_completed: true })
       .eq('id', user.id)
 
-    if (error) return NextResponse.json({ error: 'Erro ao salvar.' }, { status: 500 })
+    if (error) {
+      return NextResponse.json({ error: 'Erro ao salvar.' }, { status: 500 })
+    }
 
-    const { data: profile } = await adminSupabase
+    const { data: profile } = await admin
       .from('profiles')
       .select('role')
       .eq('id', user.id)
       .single()
 
     return NextResponse.json({ success: true, role: profile?.role })
-  } catch {
+  } catch (e) {
+    console.error(e)
     return NextResponse.json({ error: 'Erro interno.' }, { status: 500 })
   }
 }
