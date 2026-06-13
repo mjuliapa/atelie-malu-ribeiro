@@ -85,9 +85,7 @@ export default function LoginPage() {
   return (
     <div className="w-full max-w-sm">
       <div className="flex flex-col items-center mb-10">
-        <LogoMark size={72} />
-        <h1 className="font-script text-4xl text-brand-ink mt-4 tracking-wide">Malu Ribeiro</h1>
-        <p className="font-display text-sm tracking-[0.2em] uppercase text-brand-muted mt-1">Cerâmica Autoral</p>
+        <LogoMark size={220} color="dark" />
       </div>
 
       <div className="bg-white rounded-2xl shadow-card px-8 py-8">
