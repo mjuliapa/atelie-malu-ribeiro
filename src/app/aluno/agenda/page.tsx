@@ -113,7 +113,7 @@ export default function AlunoAgendaPage() {
   const daySlots = getSlotsForDay(selectedDate)
 
   return (
-    <div className="pt-16 px-4 pb-4 space-y-4">
+    <div className="px-4 pb-4 space-y-4">
       <div className="pt-2">
         <h1 className="font-display text-2xl text-brand-text">Agenda</h1>
         <p className="text-sm text-brand-muted">Escolha um dia para ver os horários disponíveis.</p>

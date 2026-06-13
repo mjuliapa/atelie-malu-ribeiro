@@ -52,6 +52,16 @@ const adminNavItems = [
     ),
   },
   {
+    href: '/admin/argila',
+    label: 'Argila',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-5 h-5">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 7V5a2 2 0 0 0-2-2H8" />
+      </svg>
+    ),
+  },
+  {
     href: '/admin/fechamentos',
     label: 'Cobranças',
     icon: (

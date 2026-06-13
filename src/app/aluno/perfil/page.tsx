@@ -54,7 +54,7 @@ export default function AlunoPerfilPage() {
   }
 
   return (
-    <div className="pt-24 px-4 pb-24">
+    <div className="px-4 pb-4">
       {/* Card único grande */}
       <div className="bg-white rounded-2xl shadow-card px-6 pt-8 pb-6">
 

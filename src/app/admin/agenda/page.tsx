@@ -1,8 +1,10 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { AdminNavHeader } from '@/components/admin/AdminNav'
+
+const supabase = createClient()
 import { ScheduleSlot, Appointment } from '@/types'
 import { formatDate, formatSlotTime, cn } from '@/lib/utils'
 import {
@@ -32,8 +34,6 @@ export default function AdminAgendaPage() {
   const [selectedSlot, setSelectedSlot] = useState<ScheduleSlot | null>(null)
   const [showAttendance, setShowAttendance] = useState(false)
   const [preselectedDate, setPreselectedDate] = useState<Date | null>(null)
-
-  const supabase = createClient()
 
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 0 })
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
