@@ -42,45 +42,37 @@ export default function AlunoPerfilPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
-
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
-
     await supabase.from('profiles').update({
       full_name: fullName.trim(),
       phone: phone.replace(/\D/g, ''),
     }).eq('id', user.id)
-
     setLoading(false)
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
   }
 
-  async function handleLogout() {
-    await supabase.auth.signOut()
-    window.location.href = '/login'
-  }
-
   return (
-    <div className="pt-16 px-4 pb-24 space-y-5">
-      <div className="pt-2">
-        <h1 className="font-display text-2xl text-brand-text">Meu perfil</h1>
-      </div>
+    <div className="pt-24 px-4 pb-24">
+      {/* Card único grande */}
+      <div className="bg-white rounded-2xl shadow-card px-6 pt-8 pb-6">
 
-      {/* Logo */}
-      <div className="flex justify-center py-4">
-        <LogoMark size={160} color="dark" />
-      </div>
+        {/* Logo */}
+        <div className="flex justify-center mb-8">
+          <LogoMark size={180} color="dark" />
+        </div>
 
-      {/* Formulário */}
-      <div className="bg-white rounded-xl shadow-card p-5">
+        <h1 className="font-display text-xl text-brand-text text-center mb-6">Meu perfil</h1>
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-1.5">
               Nome completo
             </label>
             <input type="text" value={fullName} onChange={e => setFullName(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-brand-line bg-brand-cream text-brand-text focus:outline-none focus:border-brand-mauve" />
+              placeholder="Seu nome"
+              className="w-full px-4 py-3 rounded-xl border border-brand-line bg-brand-cream text-brand-text focus:outline-none focus:border-brand-mauve transition-colors" />
           </div>
 
           <div>
@@ -88,7 +80,8 @@ export default function AlunoPerfilPage() {
               WhatsApp
             </label>
             <input type="tel" value={phone} onChange={e => setPhone(fmt(e.target.value))}
-              className="w-full px-4 py-3 rounded-xl border border-brand-line bg-brand-cream text-brand-text focus:outline-none focus:border-brand-mauve" />
+              placeholder="(00) 00000-0000"
+              className="w-full px-4 py-3 rounded-xl border border-brand-line bg-brand-cream text-brand-text focus:outline-none focus:border-brand-mauve transition-colors" />
           </div>
 
           <div>
@@ -99,18 +92,14 @@ export default function AlunoPerfilPage() {
               className="w-full px-4 py-3 rounded-xl border border-brand-line bg-brand-cream text-brand-muted cursor-not-allowed" />
           </div>
 
-          <button type="submit" disabled={loading}
-            className="w-full py-3 bg-brand-ink text-brand-cream rounded-xl font-medium text-sm disabled:opacity-50">
-            {saved ? '✓ Salvo!' : loading ? 'Salvando...' : 'Salvar alterações'}
-          </button>
+          <div className="pt-2">
+            <button type="submit" disabled={loading}
+              className="w-full py-3 bg-brand-ink text-brand-cream rounded-xl font-medium text-sm disabled:opacity-50 transition-colors">
+              {saved ? '✓ Salvo!' : loading ? 'Salvando...' : 'Salvar alterações'}
+            </button>
+          </div>
         </form>
       </div>
-
-      {/* Logout */}
-      <button onClick={handleLogout}
-        className="w-full py-3 bg-white text-brand-muted border border-brand-line rounded-xl font-medium text-sm hover:border-brand-mauve hover:text-brand-mauve transition-colors">
-        Sair da conta
-      </button>
     </div>
   )
 }
