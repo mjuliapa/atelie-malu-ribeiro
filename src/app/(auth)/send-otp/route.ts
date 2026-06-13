@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { data, error } = await admin.auth.admin.generateLink({
-      type: 'email',
+      type: 'magiclink',
       email,
     })
 
@@ -34,6 +34,7 @@ export async function POST(request: NextRequest) {
     }
 
     const otp = data.properties.email_otp
+    const token_hash = data.properties.hashed_token
 
     const { error: sendError } = await resend.emails.send({
       from: 'Ateliê Malu Ribeiro <onboarding@resend.dev>',
@@ -68,7 +69,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Não foi possível enviar o e-mail.' }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true, token_hash })
   } catch (e) {
     console.error('send-otp error:', e)
     return NextResponse.json({ error: 'Erro interno.' }, { status: 500 })
