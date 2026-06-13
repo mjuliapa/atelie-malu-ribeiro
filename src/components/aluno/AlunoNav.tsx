@@ -50,7 +50,7 @@ export function AlunoNav() {
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-40 bg-brand-cream border-b border-brand-line">
         <div className="flex items-center justify-center gap-2 px-4 py-3">
-          <LogoMark size={24} color="#B07A80" />
+          <LogoMark size={24} color="mauve" />
           <span className="font-script text-xl text-brand-ink">Malu Ribeiro</span>
         </div>
       </header>

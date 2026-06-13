@@ -108,7 +108,7 @@ export function AdminNavHeader({ title, showBack }: { title: string; showBack?: 
               </svg>
             </Link>
           ) : (
-            <LogoMark size={28} color="#B07A80" />
+            <LogoMark size={28} color="mauve" />
           )}
           <span className="font-display text-base text-brand-text">{title}</span>
         </div>
