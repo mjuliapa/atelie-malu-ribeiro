@@ -48,22 +48,21 @@ function NovoFechamentoContent() {
     const mesFim = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).toISOString()
 
     Promise.all([
-      supabase.from('pieces').select('id, name, calculated_value, piece_date')
-        .eq('student_id', studentId).eq('status', 'open').order('piece_date'),
-      supabase.from('clay_sales').select('id, quantity, unit_price, total_value, sale_date, clay_types(name)')
-        .eq('student_id', studentId).eq('status', 'open').order('sale_date'),
-      supabase.from('appointments')
-        .select('id, slot_id, modality, schedule_slots(start_time)')
-        .eq('student_id', studentId)
-        .eq('status', 'confirmed')
-        .gte('schedule_slots.start_time', mesInicio)
-        .lte('schedule_slots.start_time', mesFim),
-    ]).then(([{ data: pecas }, { data: argilas }, { data: aulas }]) => {
-      setPecasAbertas(pecas ?? [])
-      setArgilasAbertas((argilas ?? []) as unknown as Argila[])
-      setAulasDoMes((aulas ?? []) as unknown as Aula[])
-      setLoading(false)
-    })
+  supabase.from('pieces').select('id, name, calculated_value, piece_date')
+    .eq('student_id', studentId).eq('status', 'open').order('piece_date'),
+  fetch(`/api/admin/argila?student_id=${studentId}&status=open`).then(r => r.json()),
+  supabase.from('appointments')
+    .select('id, slot_id, modality, schedule_slots(start_time)')
+    .eq('student_id', studentId)
+    .eq('status', 'confirmed')
+    .gte('schedule_slots.start_time', mesInicio)
+    .lte('schedule_slots.start_time', mesFim),
+]).then(([{ data: pecas }, argilas, { data: aulas }]) => {
+  setPecasAbertas(pecas ?? [])
+  setArgilasAbertas(argilas as unknown as Argila[])
+  setAulasDoMes((aulas ?? []) as unknown as Aula[])
+  setLoading(false)
+})
   }, [studentId])
 
   const totalPecas = pecasAbertas.reduce((sum, p) => sum + p.calculated_value, 0)

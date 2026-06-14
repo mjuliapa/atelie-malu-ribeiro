@@ -47,6 +47,7 @@ export default async function AdminDashboardPage() {
           <Link href="/admin/pecas" className="bg-white rounded-xl p-4 shadow-card">
             <p className="text-xs text-brand-muted mb-1">Peças em aberto</p>
             <p className="font-display text-3xl text-brand-text">{openPieces ?? 0}</p>
+            <p className="text-xs text-brand-muted mt-1">{formatCurrency(totalOpen)}</p>
           </Link>
 
           <Link href="/admin/fechamentos" className="bg-brand-blush rounded-xl p-4 shadow-card">
@@ -65,7 +66,7 @@ export default async function AdminDashboardPage() {
           </Link>
         </div>
 
-        {/* Argila em aberto — sempre visível */}
+        {/* Argila em aberto */}
         <Link href="/admin/argila" className="flex items-center justify-between bg-white rounded-xl p-4 shadow-card">
           <div>
             <p className="text-xs text-brand-muted mb-0.5">Argila em aberto</p>

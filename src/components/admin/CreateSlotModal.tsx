@@ -10,14 +10,13 @@ interface CreateSlotModalProps {
   onCreated: () => void
 }
 
-const DEFAULT_DURATIONS = [60, 90, 120, 150, 180]
+const FIXED_DURATION = 150 // 02h30
 
 export function CreateSlotModal({ preselectedDate, onClose, onCreated }: CreateSlotModalProps) {
   const today = preselectedDate ?? new Date()
 
   const [date, setDate] = useState(format(today, 'yyyy-MM-dd'))
   const [startTime, setStartTime] = useState('09:00')
-  const [duration, setDuration] = useState(90)
   const [maxStudents, setMaxStudents] = useState(8)
   const [tornoSpots, setTornoSpots] = useState(1)
   const [loading, setLoading] = useState(false)
@@ -25,7 +24,7 @@ export function CreateSlotModal({ preselectedDate, onClose, onCreated }: CreateS
 
   function calculateEndTime(): string {
     const [h, m] = startTime.split(':').map(Number)
-    const totalMinutes = h * 60 + m + duration
+    const totalMinutes = h * 60 + m + FIXED_DURATION
     const endH = Math.floor(totalMinutes / 60)
     const endM = totalMinutes % 60
     return `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`
@@ -96,64 +95,35 @@ export function CreateSlotModal({ preselectedDate, onClose, onCreated }: CreateS
             <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-1.5">
               Duração — término às {calculateEndTime()}
             </label>
-            <div className="flex gap-2 flex-wrap">
-              {DEFAULT_DURATIONS.map((d) => (
-                <button key={d} type="button" onClick={() => setDuration(d)}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium border transition-colors ${
-                    duration === d
-                      ? 'bg-brand-mauve text-white border-brand-mauve'
-                      : 'bg-white text-brand-muted border-brand-line hover:border-brand-mauve hover:text-brand-mauve'
-                  }`}>
-                  {`${String(Math.floor(d / 60)).padStart(2, '0')}h${String(d % 60).padStart(2, '0')}`}
-                </button>
-              ))}
-            </div>
+            <p className="text-sm text-brand-text font-medium bg-brand-cream px-4 py-3 rounded-lg">02h30 (padrão)</p>
           </div>
 
-          {/* Vagas totais */}
           <div>
-            <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-1.5">
-              Total de vagas
-            </label>
+            <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-1.5">Total de vagas</label>
             <div className="flex items-center gap-3">
               <button type="button" onClick={() => setMaxStudents((n) => Math.max(1, n - 1))}
-                className="w-10 h-10 rounded-lg border border-brand-line bg-white text-brand-text hover:bg-brand-cream transition-colors font-bold text-lg flex items-center justify-center">
-                −
-              </button>
+                className="w-10 h-10 rounded-lg border border-brand-line bg-white text-brand-text hover:bg-brand-cream transition-colors font-bold text-lg flex items-center justify-center">−</button>
               <span className="text-2xl font-display text-brand-text w-8 text-center">{maxStudents}</span>
               <button type="button" onClick={() => setMaxStudents((n) => Math.min(20, n + 1))}
-                className="w-10 h-10 rounded-lg border border-brand-line bg-white text-brand-text hover:bg-brand-cream transition-colors font-bold text-lg flex items-center justify-center">
-                +
-              </button>
+                className="w-10 h-10 rounded-lg border border-brand-line bg-white text-brand-text hover:bg-brand-cream transition-colors font-bold text-lg flex items-center justify-center">+</button>
               <span className="text-sm text-brand-muted">aluna{maxStudents !== 1 ? 's' : ''}</span>
             </div>
           </div>
 
-          {/* Vagas torno */}
           <div>
-            <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-1.5">
-              Vagas no torno
-            </label>
+            <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-1.5">Vagas no torno</label>
             <div className="flex items-center gap-3">
               <button type="button" onClick={() => setTornoSpots((n) => Math.max(0, n - 1))}
-                className="w-10 h-10 rounded-lg border border-brand-line bg-white text-brand-text hover:bg-brand-cream transition-colors font-bold text-lg flex items-center justify-center">
-                −
-              </button>
+                className="w-10 h-10 rounded-lg border border-brand-line bg-white text-brand-text hover:bg-brand-cream transition-colors font-bold text-lg flex items-center justify-center">−</button>
               <span className="text-2xl font-display text-brand-text w-8 text-center">{tornoSpots}</span>
               <button type="button" onClick={() => setTornoSpots((n) => Math.min(maxStudents, n + 1))}
-                className="w-10 h-10 rounded-lg border border-brand-line bg-white text-brand-text hover:bg-brand-cream transition-colors font-bold text-lg flex items-center justify-center">
-                +
-              </button>
+                className="w-10 h-10 rounded-lg border border-brand-line bg-white text-brand-text hover:bg-brand-cream transition-colors font-bold text-lg flex items-center justify-center">+</button>
               <span className="text-sm text-brand-muted">vaga{tornoSpots !== 1 ? 's' : ''} torno</span>
             </div>
-            <p className="text-xs text-brand-muted mt-1">
-              {maxStudents - tornoSpots} manual + {tornoSpots} torno
-            </p>
+            <p className="text-xs text-brand-muted mt-1">{maxStudents - tornoSpots} manual + {tornoSpots} torno</p>
           </div>
 
-          {error && (
-            <p className="text-sm text-status-open-text bg-status-open-bg rounded-lg px-3 py-2">{error}</p>
-          )}
+          {error && <p className="text-sm text-status-open-text bg-status-open-bg rounded-lg px-3 py-2">{error}</p>}
 
           <div className="flex gap-3 pt-1">
             <button type="button" onClick={onClose}
@@ -161,7 +131,7 @@ export function CreateSlotModal({ preselectedDate, onClose, onCreated }: CreateS
               Cancelar
             </button>
             <button type="submit" disabled={loading}
-              className="flex-1 py-3 px-4 bg-brand-ink text-brand-cream rounded-lg font-medium text-sm hover:bg-brand-text transition-colors disabled:opacity-50">
+              className="flex-1 py-3 px-4 bg-brand-ink text-brand-cream rounded-lg font-medium text-sm disabled:opacity-50">
               {loading ? 'Criando...' : 'Criar aula'}
             </button>
           </div>

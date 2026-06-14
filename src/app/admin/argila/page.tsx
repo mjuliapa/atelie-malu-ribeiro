@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { AdminNavHeader } from '@/components/admin/AdminNav'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import Link from 'next/link'
@@ -23,19 +22,10 @@ export default function AdminArgilaPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    async function load() {
-      setLoading(true)
-      const supabase = createClient()
-      let query = supabase
-        .from('clay_sales')
-        .select('id, quantity, unit_price, total_value, status, sale_date, clay_types(name), profiles:student_id(full_name)')
-        .order('created_at', { ascending: false })
-      if (filter !== 'all') query = query.eq('status', filter)
-      const { data } = await query
-      setSales((data as unknown as Sale[]) ?? [])
-      setLoading(false)
-    }
-    load()
+    setLoading(true)
+    fetch(`/api/admin/argila?status=${filter}`)
+      .then(r => r.json())
+      .then(data => { setSales(data); setLoading(false) })
   }, [filter])
 
   const totalAberto = sales.filter(s => s.status === 'open').reduce((sum, s) => sum + s.total_value, 0)
@@ -56,8 +46,7 @@ export default function AdminArgilaPage() {
             <h1 className="font-display text-2xl text-brand-text">Argila</h1>
             <p className="text-sm text-brand-muted">{sales.length} registros</p>
           </div>
-          <Link href="/admin/argila/nova"
-            className="bg-brand-ink text-brand-cream px-4 py-2 rounded-xl text-sm font-medium">
+          <Link href="/admin/argila/nova" className="bg-brand-ink text-brand-cream px-4 py-2 rounded-xl text-sm font-medium">
             + Nova venda
           </Link>
         </div>
@@ -93,7 +82,7 @@ export default function AdminArgilaPage() {
               <div key={s.id} className="flex items-center gap-3 px-4 py-3">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-brand-text truncate">
-                    {s.profiles?.full_name} — {s.clay_types?.name}
+                    {(s.profiles as any)?.full_name} — {(s.clay_types as any)?.name}
                   </p>
                   <p className="text-xs text-brand-muted">
                     {s.quantity} pacote{s.quantity !== 1 ? 's' : ''} · {formatDate(s.sale_date)}
