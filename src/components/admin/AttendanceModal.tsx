@@ -15,6 +15,7 @@ interface AttendanceRecord {
   appointmentId: string
   studentName: string
   status: AttendanceStatus
+  modality: 'manual' | 'torno'
   notes: string
   existingAttendanceId?: string
 }
@@ -25,17 +26,16 @@ export function AttendanceModal({ slot, onClose, onSaved }: AttendanceModalProps
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const supabase = createClient()
-
   useEffect(() => {
     loadAppointments()
   }, [])
 
   async function loadAppointments() {
+    const supabase = createClient()
     const { data } = await supabase
       .from('appointments')
       .select(`
-        id, status, student_id,
+        id, status, student_id, modality,
         profiles:student_id(full_name),
         attendance(id, status, notes)
       `)
@@ -44,18 +44,13 @@ export function AttendanceModal({ slot, onClose, onSaved }: AttendanceModalProps
 
     if (data) {
       setRecords(
-        data.map((a: {
-          id: string
-          status: string
-          student_id: string
-          profiles: { full_name: string } | { full_name: string }[]
-          attendance: Array<{ id: string; status: AttendanceStatus; notes: string }>
-        }) => {
+        data.map((a: any) => {
           const profile = Array.isArray(a.profiles) ? a.profiles[0] : a.profiles
           return {
             appointmentId: a.id,
             studentName: profile?.full_name ?? 'Aluna',
             status: a.attendance?.[0]?.status ?? 'present',
+            modality: a.modality ?? 'manual',
             notes: a.attendance?.[0]?.notes ?? '',
             existingAttendanceId: a.attendance?.[0]?.id,
           }
@@ -65,7 +60,7 @@ export function AttendanceModal({ slot, onClose, onSaved }: AttendanceModalProps
     setLoading(false)
   }
 
-  function updateRecord(appointmentId: string, field: 'status' | 'notes', value: string) {
+  function updateRecord(appointmentId: string, field: string, value: string) {
     setRecords((prev) =>
       prev.map((r) =>
         r.appointmentId === appointmentId ? { ...r, [field]: value } : r
@@ -73,13 +68,23 @@ export function AttendanceModal({ slot, onClose, onSaved }: AttendanceModalProps
     )
   }
 
+  // quantas vagas de torno já usadas (excluindo o próprio registro)
+  function tornoUsed(excludeId: string) {
+    return records.filter(r => r.appointmentId !== excludeId && r.modality === 'torno').length
+  }
+
   async function handleSave() {
     setSaving(true)
     setError(null)
-
+    const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     for (const record of records) {
+      // atualiza modalidade no appointment
+      await supabase.from('appointments')
+        .update({ modality: record.modality })
+        .eq('id', record.appointmentId)
+
       const payload = {
         appointment_id: record.appointmentId,
         status: record.status,
@@ -89,10 +94,7 @@ export function AttendanceModal({ slot, onClose, onSaved }: AttendanceModalProps
       }
 
       if (record.existingAttendanceId) {
-        await supabase
-          .from('attendance')
-          .update(payload)
-          .eq('id', record.existingAttendanceId)
+        await supabase.from('attendance').update(payload).eq('id', record.existingAttendanceId)
       } else {
         await supabase.from('attendance').insert(payload)
       }
@@ -108,6 +110,8 @@ export function AttendanceModal({ slot, onClose, onSaved }: AttendanceModalProps
     { value: 'justified', label: 'Justificada', color: 'bg-status-closed-bg text-status-closed-text border-status-closed-text' },
   ]
 
+  const tornoSpots = slot.torno_spots ?? 1
+
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       <div className="absolute inset-0 bg-brand-ink/40 backdrop-blur-sm" onClick={onClose} />
@@ -115,13 +119,10 @@ export function AttendanceModal({ slot, onClose, onSaved }: AttendanceModalProps
       <div className="relative w-full max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-xl z-10 max-h-[85vh] flex flex-col">
         <div className="absolute top-2 left-1/2 -translate-x-1/2 w-10 h-1 bg-brand-line rounded-full sm:hidden" />
 
-        {/* Header fixo */}
         <div className="px-6 py-5 border-b border-brand-line flex items-center justify-between">
           <div>
             <h2 className="font-display text-xl text-brand-text">Presença</h2>
-            <p className="text-xs text-brand-muted">
-              {formatSlotTime(slot.start_time, slot.end_time)}
-            </p>
+            <p className="text-xs text-brand-muted">{formatSlotTime(slot.start_time, slot.end_time)}</p>
           </div>
           <button onClick={onClose} className="p-2 text-brand-muted hover:text-brand-text rounded-lg hover:bg-brand-cream transition-colors">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-5 h-5">
@@ -131,13 +132,10 @@ export function AttendanceModal({ slot, onClose, onSaved }: AttendanceModalProps
           </button>
         </div>
 
-        {/* Lista scrollável */}
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
           {loading ? (
             <div className="space-y-3">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="h-20 bg-brand-cream rounded-xl animate-pulse" />
-              ))}
+              {[1, 2, 3].map((i) => <div key={i} className="h-20 bg-brand-cream rounded-xl animate-pulse" />)}
             </div>
           ) : records.length === 0 ? (
             <div className="text-center py-8">
@@ -146,16 +144,50 @@ export function AttendanceModal({ slot, onClose, onSaved }: AttendanceModalProps
           ) : (
             records.map((record) => (
               <div key={record.appointmentId} className="bg-brand-cream rounded-xl p-4 space-y-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-full bg-brand-blush flex items-center justify-center">
-                    <span className="text-sm font-medium text-brand-mauve">
-                      {record.studentName.charAt(0).toUpperCase()}
-                    </span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-brand-blush flex items-center justify-center">
+                      <span className="text-sm font-medium text-brand-mauve">
+                        {record.studentName.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                    <span className="font-medium text-brand-text">{record.studentName}</span>
                   </div>
-                  <span className="font-medium text-brand-text">{record.studentName}</span>
+
+                  {/* Modalidade */}
+                  <div className="flex gap-1">
+                    <button
+                      type="button"
+                      onClick={() => updateRecord(record.appointmentId, 'modality', 'manual')}
+                      className={cn(
+                        'px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors',
+                        record.modality === 'manual'
+                          ? 'bg-brand-ink text-brand-cream border-brand-ink'
+                          : 'bg-white text-brand-muted border-brand-line'
+                      )}>
+                      Manual
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (record.modality !== 'torno' && tornoUsed(record.appointmentId) >= tornoSpots) return
+                        updateRecord(record.appointmentId, 'modality', 'torno')
+                      }}
+                      disabled={record.modality !== 'torno' && tornoUsed(record.appointmentId) >= tornoSpots}
+                      className={cn(
+                        'px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors',
+                        record.modality === 'torno'
+                          ? 'bg-brand-mauve text-white border-brand-mauve'
+                          : tornoUsed(record.appointmentId) >= tornoSpots
+                            ? 'bg-white text-brand-muted/40 border-brand-line cursor-not-allowed'
+                            : 'bg-white text-brand-muted border-brand-line'
+                      )}>
+                      Torno
+                    </button>
+                  </div>
                 </div>
 
-                {/* Botões de status */}
+                {/* Status de presença */}
                 <div className="flex gap-2">
                   {statusOptions.map((opt) => (
                     <button
@@ -167,40 +199,34 @@ export function AttendanceModal({ slot, onClose, onSaved }: AttendanceModalProps
                         record.status === opt.value
                           ? opt.color
                           : 'bg-white text-brand-muted border-brand-line hover:border-brand-sand'
-                      )}
-                    >
+                      )}>
                       {opt.label}
                     </button>
                   ))}
                 </div>
 
-                {/* Observação (só para falta/justificada) */}
                 {record.status !== 'present' && (
                   <input
                     type="text"
                     value={record.notes}
                     onChange={(e) => updateRecord(record.appointmentId, 'notes', e.target.value)}
                     placeholder="Observação (opcional)"
-                    className="w-full px-3 py-2 rounded-lg border border-brand-line bg-white text-brand-text text-sm placeholder:text-brand-muted/60 focus:outline-none focus:border-brand-mauve transition-colors"
-                  />
+                    className="w-full px-3 py-2 rounded-lg border border-brand-line bg-white text-brand-text text-sm focus:outline-none focus:border-brand-mauve" />
                 )}
               </div>
             ))
           )}
         </div>
 
-        {/* Footer fixo */}
         <div className="px-6 py-4 border-t border-brand-line">
-          {error && (
-            <p className="text-sm text-status-open-text mb-3">{error}</p>
-          )}
+          {error && <p className="text-sm text-status-open-text mb-3">{error}</p>}
           <div className="flex gap-3">
             <button onClick={onClose}
               className="flex-1 py-3 bg-white text-brand-muted border border-brand-line rounded-lg font-medium text-sm hover:bg-brand-cream transition-colors">
               Cancelar
             </button>
             <button onClick={handleSave} disabled={saving || records.length === 0}
-              className="flex-1 py-3 bg-brand-ink text-brand-cream rounded-lg font-medium text-sm hover:bg-brand-text transition-colors disabled:opacity-50">
+              className="flex-1 py-3 bg-brand-ink text-brand-cream rounded-lg font-medium text-sm disabled:opacity-50">
               {saving ? 'Salvando...' : 'Salvar presença'}
             </button>
           </div>

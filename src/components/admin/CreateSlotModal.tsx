@@ -19,10 +19,9 @@ export function CreateSlotModal({ preselectedDate, onClose, onCreated }: CreateS
   const [startTime, setStartTime] = useState('09:00')
   const [duration, setDuration] = useState(90)
   const [maxStudents, setMaxStudents] = useState(8)
+  const [tornoSpots, setTornoSpots] = useState(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-
-  const supabase = createClient()
 
   function calculateEndTime(): string {
     const [h, m] = startTime.split(':').map(Number)
@@ -37,6 +36,7 @@ export function CreateSlotModal({ preselectedDate, onClose, onCreated }: CreateS
     setError(null)
     setLoading(true)
 
+    const supabase = createClient()
     const startISO = `${date}T${startTime}:00`
     const endISO = `${date}T${calculateEndTime()}:00`
 
@@ -44,6 +44,7 @@ export function CreateSlotModal({ preselectedDate, onClose, onCreated }: CreateS
       start_time: startISO,
       end_time: endISO,
       max_students: maxStudents,
+      torno_spots: tornoSpots,
       is_blocked: false,
     })
 
@@ -109,8 +110,11 @@ export function CreateSlotModal({ preselectedDate, onClose, onCreated }: CreateS
             </div>
           </div>
 
+          {/* Vagas totais */}
           <div>
-            <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-1.5">Limite de alunas</label>
+            <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-1.5">
+              Total de vagas
+            </label>
             <div className="flex items-center gap-3">
               <button type="button" onClick={() => setMaxStudents((n) => Math.max(1, n - 1))}
                 className="w-10 h-10 rounded-lg border border-brand-line bg-white text-brand-text hover:bg-brand-cream transition-colors font-bold text-lg flex items-center justify-center">
@@ -123,6 +127,28 @@ export function CreateSlotModal({ preselectedDate, onClose, onCreated }: CreateS
               </button>
               <span className="text-sm text-brand-muted">aluna{maxStudents !== 1 ? 's' : ''}</span>
             </div>
+          </div>
+
+          {/* Vagas torno */}
+          <div>
+            <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-1.5">
+              Vagas no torno
+            </label>
+            <div className="flex items-center gap-3">
+              <button type="button" onClick={() => setTornoSpots((n) => Math.max(0, n - 1))}
+                className="w-10 h-10 rounded-lg border border-brand-line bg-white text-brand-text hover:bg-brand-cream transition-colors font-bold text-lg flex items-center justify-center">
+                −
+              </button>
+              <span className="text-2xl font-display text-brand-text w-8 text-center">{tornoSpots}</span>
+              <button type="button" onClick={() => setTornoSpots((n) => Math.min(maxStudents, n + 1))}
+                className="w-10 h-10 rounded-lg border border-brand-line bg-white text-brand-text hover:bg-brand-cream transition-colors font-bold text-lg flex items-center justify-center">
+                +
+              </button>
+              <span className="text-sm text-brand-muted">vaga{tornoSpots !== 1 ? 's' : ''} torno</span>
+            </div>
+            <p className="text-xs text-brand-muted mt-1">
+              {maxStudents - tornoSpots} manual + {tornoSpots} torno
+            </p>
           </div>
 
           {error && (
