@@ -21,6 +21,7 @@ function NovaPecaContent() {
   const [students, setStudents] = useState<Student[]>([])
   const [firingTypes, setFiringTypes] = useState<FiringType[]>([])
   const [loading, setLoading] = useState(false)
+  const [search, setSearch] = useState('')
   const [studentId, setStudentId] = useState(alunaParam ?? '')
   const [name, setName] = useState('')
   const [height, setHeight] = useState('')
@@ -39,6 +40,10 @@ function NovaPecaContent() {
         if (firingTypes.length) setFiringTypeId(firingTypes[0].id)
       })
   }, [])
+
+  const filteredStudents = students.filter(s =>
+    s.full_name.toLowerCase().includes(search.toLowerCase())
+  )
 
   const h = parseFloat(height) || 0
   const w = parseFloat(width) || 0
@@ -87,19 +92,29 @@ function NovaPecaContent() {
             {students.length === 0 ? (
               <p className="text-sm text-brand-muted">Nenhuma aluna cadastrada ainda.</p>
             ) : (
-              <div className="grid grid-cols-1 gap-2">
-                {students.map(s => (
-                  <button key={s.id} type="button" onClick={() => setStudentId(s.id)}
-                    className={cn(
-                      'px-4 py-3 rounded-xl border text-sm text-left transition-colors',
-                      studentId === s.id
-                        ? 'border-brand-mauve bg-brand-blush text-brand-mauve font-medium'
-                        : 'border-brand-line bg-white text-brand-text hover:border-brand-mauve'
-                    )}>
-                    {s.full_name}
-                  </button>
-                ))}
-              </div>
+              <>
+                <input
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Buscar aluna..."
+                  className="w-full px-4 py-3 rounded-xl border border-brand-line bg-white text-brand-text focus:outline-none focus:border-brand-mauve mb-2" />
+                <div className="max-h-48 overflow-y-auto space-y-1.5">
+                  {filteredStudents.map(s => (
+                    <button key={s.id} type="button" onClick={() => setStudentId(s.id)}
+                      className={cn(
+                        'w-full px-4 py-3 rounded-xl border text-sm text-left transition-colors',
+                        studentId === s.id
+                          ? 'border-brand-mauve bg-brand-blush text-brand-mauve font-medium'
+                          : 'border-brand-line bg-white text-brand-text hover:border-brand-mauve'
+                      )}>
+                      {s.full_name}
+                    </button>
+                  ))}
+                  {filteredStudents.length === 0 && (
+                    <p className="text-sm text-brand-muted text-center py-3">Nenhuma aluna encontrada.</p>
+                  )}
+                </div>
+              </>
             )}
           </div>
 

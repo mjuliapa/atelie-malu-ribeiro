@@ -17,6 +17,7 @@ export default function NovaArgilaPage() {
   const router = useRouter()
   const [clayTypes, setClayTypes] = useState<ClayType[]>([])
   const [students, setStudents] = useState<Student[]>([])
+  const [search, setSearch] = useState('')
   const [studentId, setStudentId] = useState('')
   const [clayTypeId, setClayTypeId] = useState('')
   const [quantity, setQuantity] = useState(1)
@@ -33,6 +34,10 @@ export default function NovaArgilaPage() {
         if (clayTypes.length) setClayTypeId(clayTypes[0].id)
       })
   }, [])
+
+  const filteredStudents = students.filter(s =>
+    s.full_name.toLowerCase().includes(search.toLowerCase())
+  )
 
   const selectedClay = clayTypes.find(c => c.id === clayTypeId)
   const total = quantity * (selectedClay?.price ?? 0)
@@ -71,19 +76,29 @@ export default function NovaArgilaPage() {
             {students.length === 0 ? (
               <div className="h-10 bg-brand-cream rounded-xl animate-pulse" />
             ) : (
-              <div className="grid grid-cols-1 gap-2">
-                {students.map(s => (
-                  <button key={s.id} type="button" onClick={() => setStudentId(s.id)}
-                    className={cn(
-                      'px-4 py-3 rounded-xl border text-sm text-left transition-colors',
-                      studentId === s.id
-                        ? 'border-brand-mauve bg-brand-blush text-brand-mauve font-medium'
-                        : 'border-brand-line bg-white text-brand-text hover:border-brand-mauve'
-                    )}>
-                    {s.full_name}
-                  </button>
-                ))}
-              </div>
+              <>
+                <input
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Buscar aluna..."
+                  className="w-full px-4 py-3 rounded-xl border border-brand-line bg-white text-brand-text focus:outline-none focus:border-brand-mauve mb-2" />
+                <div className="max-h-48 overflow-y-auto space-y-1.5">
+                  {filteredStudents.map(s => (
+                    <button key={s.id} type="button" onClick={() => setStudentId(s.id)}
+                      className={cn(
+                        'w-full px-4 py-3 rounded-xl border text-sm text-left transition-colors',
+                        studentId === s.id
+                          ? 'border-brand-mauve bg-brand-blush text-brand-mauve font-medium'
+                          : 'border-brand-line bg-white text-brand-text hover:border-brand-mauve'
+                      )}>
+                      {s.full_name}
+                    </button>
+                  ))}
+                  {filteredStudents.length === 0 && (
+                    <p className="text-sm text-brand-muted text-center py-3">Nenhuma aluna encontrada.</p>
+                  )}
+                </div>
+              </>
             )}
           </div>
 
