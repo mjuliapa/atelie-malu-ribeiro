@@ -65,7 +65,7 @@ export function CreateSlotModal({ preselectedDate, onClose, onCreated }: CreateS
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       <div className="absolute inset-0 bg-brand-ink/40 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative w-full max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-xl px-6 py-6 z-10">
+      <div className="relative w-full max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-xl px-6 py-6 z-10 max-h-[90vh] overflow-y-auto">
         <div className="absolute top-2 left-1/2 -translate-x-1/2 w-10 h-1 bg-brand-line rounded-full sm:hidden" />
 
         <div className="flex items-center justify-between mb-5">
