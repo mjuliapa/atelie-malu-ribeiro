@@ -48,21 +48,20 @@ function NovoFechamentoContent() {
     const mesFim = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).toISOString()
 
     Promise.all([
-  supabase.from('pieces').select('id, name, calculated_value, piece_date')
-    .eq('student_id', studentId).eq('status', 'open').order('piece_date'),
-  fetch(`/api/admin/argila?student_id=${studentId}&status=open`).then(r => r.json()),
-  supabase.from('appointments')
-    .select('id, slot_id, modality, schedule_slots(start_time)')
-    .eq('student_id', studentId)
-    .eq('status', 'confirmed')
-    .gte('schedule_slots.start_time', mesInicio)
-    .lte('schedule_slots.start_time', mesFim),
-]).then(([{ data: pecas }, argilas, { data: aulas }]) => {
-  setPecasAbertas(pecas ?? [])
-  setArgilasAbertas(argilas as unknown as Argila[])
-  setAulasDoMes((aulas ?? []) as unknown as Aula[])
-  setLoading(false)
-})
+      fetch(`/api/admin/pecas?student_id=${studentId}&status=open`).then(r => r.json()),
+      fetch(`/api/admin/argila?student_id=${studentId}&status=open`).then(r => r.json()),
+      supabase.from('appointments')
+        .select('id, slot_id, modality, schedule_slots(start_time)')
+        .eq('student_id', studentId)
+        .eq('status', 'confirmed')
+        .gte('schedule_slots.start_time', mesInicio)
+        .lte('schedule_slots.start_time', mesFim),
+    ]).then(([pecas, argilas, { data: aulas }]) => {
+      setPecasAbertas(pecas as unknown as Peca[])
+      setArgilasAbertas(argilas as unknown as Argila[])
+      setAulasDoMes((aulas ?? []) as unknown as Aula[])
+      setLoading(false)
+    })
   }, [studentId])
 
   const totalPecas = pecasAbertas.reduce((sum, p) => sum + p.calculated_value, 0)
@@ -126,8 +125,6 @@ function NovoFechamentoContent() {
               <div className="h-20 bg-white rounded-xl animate-pulse" />
             ) : (
               <div className="space-y-4">
-
-                {/* Pacote de aulas */}
                 <div className="space-y-2">
                   <h2 className="font-display text-base text-brand-text">Pacote do mês</h2>
                   {aulasDoMes.length === 0 ? (
@@ -151,7 +148,6 @@ function NovoFechamentoContent() {
                   )}
                 </div>
 
-                {/* Peças */}
                 {pecasAbertas.length > 0 && (
                   <div className="space-y-2">
                     <h2 className="font-display text-base text-brand-text">Peças em aberto</h2>
@@ -169,7 +165,6 @@ function NovoFechamentoContent() {
                   </div>
                 )}
 
-                {/* Argila */}
                 {argilasAbertas.length > 0 && (
                   <div className="space-y-2">
                     <h2 className="font-display text-base text-brand-text">Argila em aberto</h2>
@@ -189,7 +184,6 @@ function NovoFechamentoContent() {
                   </div>
                 )}
 
-                {/* Total */}
                 <div className="bg-brand-blush rounded-xl p-4 space-y-2">
                   {valorPacote > 0 && (
                     <div className="flex justify-between text-sm">

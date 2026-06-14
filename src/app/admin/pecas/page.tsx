@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { AdminNavHeader } from '@/components/admin/AdminNav'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import Link from 'next/link'
@@ -19,23 +18,12 @@ export default function AdminPecasPage() {
   const [pecas, setPecas] = useState<Peca[]>([])
   const [filter, setFilter] = useState<'all' | 'open' | 'closed' | 'paid'>('all')
   const [loading, setLoading] = useState(true)
-  const supabase = createClient()
 
   useEffect(() => {
-    async function load() {
-      setLoading(true)
-      let query = supabase
-        .from('pieces')
-        .select('id, name, calculated_value, status, piece_date, profiles:student_id(full_name)')
-        .order('created_at', { ascending: false })
-
-      if (filter !== 'all') query = query.eq('status', filter)
-
-      const { data } = await query
-      setPecas((data as unknown as Peca[]) ?? [])
-      setLoading(false)
-    }
-    load()
+    setLoading(true)
+    fetch(`/api/admin/pecas?status=${filter}`)
+      .then(r => r.json())
+      .then(data => { setPecas(data); setLoading(false) })
   }, [filter])
 
   const statusLabel: Record<string, string> = { open: 'Em aberto', closed: 'Fechada', paid: 'Paga', cancelled: 'Cancelada' }
@@ -55,20 +43,16 @@ export default function AdminPecasPage() {
             <h1 className="font-display text-2xl text-brand-text">Peças</h1>
             <p className="text-sm text-brand-muted">{pecas.length} encontradas</p>
           </div>
-          <Link href="/admin/pecas/nova"
-            className="bg-brand-ink text-brand-cream px-4 py-2 rounded-xl text-sm font-medium">
+          <Link href="/admin/pecas/nova" className="bg-brand-ink text-brand-cream px-4 py-2 rounded-xl text-sm font-medium">
             + Nova peça
           </Link>
         </div>
 
-        {/* Filtros */}
         <div className="flex gap-2 overflow-x-auto pb-1">
           {(['all', 'open', 'closed', 'paid'] as const).map((f) => (
             <button key={f} onClick={() => setFilter(f)}
               className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
-                filter === f
-                  ? 'bg-brand-ink text-brand-cream'
-                  : 'bg-white text-brand-muted border border-brand-line'
+                filter === f ? 'bg-brand-ink text-brand-cream' : 'bg-white text-brand-muted border border-brand-line'
               }`}>
               {f === 'all' ? 'Todas' : statusLabel[f]}
             </button>
@@ -82,9 +66,7 @@ export default function AdminPecasPage() {
         ) : pecas.length === 0 ? (
           <div className="bg-white rounded-xl p-8 text-center shadow-card">
             <p className="font-display text-base text-brand-text mb-1">Nenhuma peça encontrada</p>
-            <Link href="/admin/pecas/nova" className="text-sm text-brand-mauve hover:underline">
-              Cadastrar primeira peça
-            </Link>
+            <Link href="/admin/pecas/nova" className="text-sm text-brand-mauve hover:underline">Cadastrar primeira peça</Link>
           </div>
         ) : (
           <div className="bg-white rounded-xl shadow-card divide-y divide-brand-line">
@@ -93,7 +75,7 @@ export default function AdminPecasPage() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-brand-text truncate">{p.name}</p>
                   <p className="text-xs text-brand-muted">
-                    {p.profiles?.full_name ?? '—'} · {formatDate(p.piece_date)}
+                    {(p.profiles as any)?.full_name ?? '—'} · {formatDate(p.piece_date)}
                   </p>
                 </div>
                 <div className="text-right flex-shrink-0">
