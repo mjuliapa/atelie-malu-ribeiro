@@ -26,22 +26,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // usa o OTP nativo do Supabase — envia e-mail automaticamente
-    const anonClient = createSupabaseClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    )
-
-    const { error } = await anonClient.auth.signInWithOtp({
-      email,
-      options: { shouldCreateUser: true },
-    })
-
-    if (error) {
-      return NextResponse.json({ error: 'Não foi possível enviar o código.' }, { status: 500 })
+    const { data, error } = await admin.auth.admin.generateLink({ type: 'magiclink', email })
+    if (error || !data?.properties?.hashed_token) {
+      return NextResponse.json({ error: 'Não foi possível gerar o acesso.' }, { status: 500 })
     }
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true, token_hash: data.properties.hashed_token })
   } catch (e) {
     console.error(e)
     return NextResponse.json({ error: 'Erro interno.' }, { status: 500 })
