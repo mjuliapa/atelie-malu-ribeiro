@@ -2,20 +2,18 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
-
 export async function POST(request: NextRequest) {
   try {
     const { email } = await request.json()
     if (!email) return NextResponse.json({ error: 'E-mail obrigatório.' }, { status: 400 })
 
+    const resend = new Resend(process.env.RESEND_API_KEY)
     const admin = createSupabaseClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
       { auth: { autoRefreshToken: false, persistSession: false } }
     )
 
-    // cria o usuário se não existir
     const { data: users } = await admin.auth.admin.listUsers()
     const userExists = users?.users?.some((u) => u.email === email)
 
