@@ -87,6 +87,7 @@ export interface ScheduleSlot {
   start_time: string
   end_time: string
   max_students: number
+  torno_spots: number
   is_blocked: boolean
   block_reason: string | null
   created_at: string
@@ -103,6 +104,7 @@ export interface Appointment {
   slot_id: string
   student_id: string
   status: AppointmentStatus
+  modality: 'manual' | 'torno'
   cancelled_at: string | null
   cancel_reason: string | null
   created_at: string
