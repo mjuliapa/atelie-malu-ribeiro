@@ -61,7 +61,7 @@ function NovoFechamentoContent() {
     ]).then(([{ data: pecas }, { data: argilas }, { data: aulas }]) => {
       setPecasAbertas(pecas ?? [])
       setArgilasAbertas((argilas ?? []) as unknown as Argila[])
-      setAulasDoMes((aulas ?? []) as Aula[])
+      setAulasDoMes((aulas ?? []) as unknown as Aula[])
       setLoading(false)
     })
   }, [studentId])
