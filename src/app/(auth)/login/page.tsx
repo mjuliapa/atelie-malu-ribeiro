@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { LogoMark } from '@/components/shared/LogoMark'
 
 const ADMIN_EMAIL = 'ateliemaluribeiro@gmail.com'
@@ -21,19 +20,23 @@ export default function LoginPage() {
     setLoading(true)
 
     if (isAdmin) {
-      // login com senha para a Malu
-      const supabase = createClient()
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) {
+      const res = await fetch('/api/auth/admin-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
         setLoading(false)
-        setError('Senha incorreta.')
+        setError(data.error ?? 'Senha incorreta.')
         return
       }
+
       window.location.href = '/admin'
       return
     }
 
-    // login direto para alunas
     const res = await fetch('/api/auth/send-otp', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
