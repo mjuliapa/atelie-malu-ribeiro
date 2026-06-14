@@ -60,7 +60,7 @@ function NovoFechamentoContent() {
         .lte('schedule_slots.start_time', mesFim),
     ]).then(([{ data: pecas }, { data: argilas }, { data: aulas }]) => {
       setPecasAbertas(pecas ?? [])
-      setArgilasAbertas((argilas ?? []) as Argila[])
+      setArgilasAbertas((argilas ?? []) as unknown as Argila[])
       setAulasDoMes((aulas ?? []) as Aula[])
       setLoading(false)
     })

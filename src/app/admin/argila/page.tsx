@@ -21,11 +21,11 @@ export default function AdminArgilaPage() {
   const [sales, setSales] = useState<Sale[]>([])
   const [filter, setFilter] = useState<'all' | 'open' | 'paid'>('all')
   const [loading, setLoading] = useState(true)
-  const supabase = createClient()
 
   useEffect(() => {
     async function load() {
       setLoading(true)
+      const supabase = createClient()
       let query = supabase
         .from('clay_sales')
         .select('id, quantity, unit_price, total_value, status, sale_date, clay_types(name), profiles:student_id(full_name)')

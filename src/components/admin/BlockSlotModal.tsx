@@ -17,12 +17,11 @@ export function BlockSlotModal({ slot, onClose, onUpdated }: BlockSlotModalProps
   const [error, setError] = useState<string | null>(null)
   const isBlocked = slot.is_blocked
 
-  const supabase = createClient()
-
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
     setLoading(true)
+    const supabase = createClient()
 
     const { error } = await supabase
       .from('schedule_slots')
@@ -33,12 +32,7 @@ export function BlockSlotModal({ slot, onClose, onUpdated }: BlockSlotModalProps
       .eq('id', slot.id)
 
     setLoading(false)
-
-    if (error) {
-      setError('Não foi possível atualizar a aula.')
-      return
-    }
-
+    if (error) { setError('Não foi possível atualizar a aula.'); return }
     onUpdated()
   }
 
@@ -46,7 +40,7 @@ export function BlockSlotModal({ slot, onClose, onUpdated }: BlockSlotModalProps
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       <div className="absolute inset-0 bg-brand-ink/40 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative w-full max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-xl px-6 py-6 z-10">
+      <div className="relative w-full max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-xl px-6 py-6 z-10 max-h-[90vh] overflow-y-auto">
         <div className="absolute top-2 left-1/2 -translate-x-1/2 w-10 h-1 bg-brand-line rounded-full sm:hidden" />
 
         <div className="flex items-center justify-between mb-5">
@@ -62,9 +56,7 @@ export function BlockSlotModal({ slot, onClose, onUpdated }: BlockSlotModalProps
         </div>
 
         <p className="text-sm text-brand-muted mb-5">
-          Aula: <span className="text-brand-text font-medium">
-            {formatSlotTime(slot.start_time, slot.end_time)}
-          </span>
+          Aula: <span className="text-brand-text font-medium">{formatSlotTime(slot.start_time, slot.end_time)}</span>
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -73,13 +65,9 @@ export function BlockSlotModal({ slot, onClose, onUpdated }: BlockSlotModalProps
               <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-1.5">
                 Motivo (opcional)
               </label>
-              <input
-                type="text"
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
+              <input type="text" value={reason} onChange={(e) => setReason(e.target.value)}
                 placeholder="Ex: Feriado, compromisso pessoal..."
-                className="w-full px-4 py-3 rounded-lg border border-brand-line bg-brand-cream text-brand-text placeholder:text-brand-muted/60 focus:outline-none focus:border-brand-mauve focus:ring-1 focus:ring-brand-mauve transition-colors"
-              />
+                className="w-full px-4 py-3 rounded-lg border border-brand-line bg-brand-cream text-brand-text placeholder:text-brand-muted/60 focus:outline-none focus:border-brand-mauve transition-colors" />
             </div>
           )}
 
@@ -91,11 +79,7 @@ export function BlockSlotModal({ slot, onClose, onUpdated }: BlockSlotModalProps
             </div>
           )}
 
-          {error && (
-            <p className="text-sm text-status-open-text bg-status-open-bg rounded-lg px-3 py-2">
-              {error}
-            </p>
-          )}
+          {error && <p className="text-sm text-status-open-text bg-status-open-bg rounded-lg px-3 py-2">{error}</p>}
 
           <div className="flex gap-3 pt-1">
             <button type="button" onClick={onClose}
@@ -103,7 +87,7 @@ export function BlockSlotModal({ slot, onClose, onUpdated }: BlockSlotModalProps
               Cancelar
             </button>
             <button type="submit" disabled={loading}
-              className="flex-1 py-3 px-4 bg-brand-ink text-brand-cream rounded-lg font-medium text-sm hover:bg-brand-text transition-colors disabled:opacity-50">
+              className="flex-1 py-3 px-4 bg-brand-ink text-brand-cream rounded-lg font-medium text-sm disabled:opacity-50">
               {loading ? 'Salvando...' : isBlocked ? 'Desbloquear' : 'Bloquear'}
             </button>
           </div>
