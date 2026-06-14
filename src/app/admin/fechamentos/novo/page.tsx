@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { AdminNavHeader } from '@/components/admin/AdminNav'
 import { formatCurrency, formatDate } from '@/lib/utils'
@@ -9,7 +9,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 type Student = { id: string; full_name: string }
 type Peca = { id: string; name: string; calculated_value: number; piece_date: string }
 
-export default function NovoFechamentoPage() {
+function NovoFechamentoContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const alunaParam = searchParams.get('aluna')
@@ -19,16 +19,17 @@ export default function NovoFechamentoPage() {
   const [pecasAbertas, setPecasAbertas] = useState<Peca[]>([])
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
-  const supabase = createClient()
 
   useEffect(() => {
-    supabase.from('profiles').select('id, full_name').eq('role', 'student').eq('status', 'active').order('full_name')
-      .then(({ data }) => setStudents(data ?? []))
+    fetch('/api/admin/form-data')
+      .then(r => r.json())
+      .then(({ students }) => setStudents(students))
   }, [])
 
   useEffect(() => {
     if (!studentId) { setPecasAbertas([]); return }
     setLoading(true)
+    const supabase = createClient()
     supabase.from('pieces').select('id, name, calculated_value, piece_date')
       .eq('student_id', studentId).eq('status', 'open').order('piece_date')
       .then(({ data }) => { setPecasAbertas(data ?? []); setLoading(false) })
@@ -40,7 +41,7 @@ export default function NovoFechamentoPage() {
   async function handleSubmit() {
     if (!studentId || !pecasAbertas.length) return
     setSaving(true)
-
+    const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
@@ -71,7 +72,6 @@ export default function NovoFechamentoPage() {
       <div className="px-4 pt-4 pb-6 space-y-5">
         <h1 className="font-display text-2xl text-brand-text">Novo fechamento</h1>
 
-        {/* Selecionar aluna */}
         <div>
           <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-1.5">Aluna</label>
           <select value={studentId} onChange={e => setStudentId(e.target.value)}
@@ -81,7 +81,6 @@ export default function NovoFechamentoPage() {
           </select>
         </div>
 
-        {/* Peças em aberto */}
         {studentId && (
           <div className="space-y-3">
             <h2 className="font-display text-base text-brand-text">Peças em aberto</h2>
@@ -106,7 +105,6 @@ export default function NovoFechamentoPage() {
                   ))}
                 </div>
 
-                {/* Total */}
                 <div className="bg-brand-blush rounded-xl p-4 flex justify-between items-center">
                   <p className="font-display text-base text-brand-mauve">Total</p>
                   <p className="font-display text-2xl text-brand-mauve">{formatCurrency(total)}</p>
@@ -122,5 +120,13 @@ export default function NovoFechamentoPage() {
         )}
       </div>
     </>
+  )
+}
+
+export default function NovoFechamentoPage() {
+  return (
+    <Suspense>
+      <NovoFechamentoContent />
+    </Suspense>
   )
 }

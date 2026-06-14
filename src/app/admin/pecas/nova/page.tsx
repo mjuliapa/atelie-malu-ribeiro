@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { AdminNavHeader } from '@/components/admin/AdminNav'
 import { formatCurrency } from '@/lib/utils'
@@ -13,7 +13,7 @@ function cn(...classes: (string | boolean | undefined)[]) {
   return classes.filter(Boolean).join(' ')
 }
 
-export default function NovaPecaPage() {
+function NovaPecaContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const alunaParam = searchParams.get('aluna')
@@ -85,7 +85,7 @@ export default function NovaPecaPage() {
           <div>
             <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-2">Aluna</label>
             {students.length === 0 ? (
-              <div className="h-10 bg-brand-cream rounded-xl animate-pulse" />
+              <p className="text-sm text-brand-muted">Nenhuma aluna cadastrada ainda.</p>
             ) : (
               <div className="grid grid-cols-1 gap-2">
                 {students.map(s => (
@@ -192,5 +192,13 @@ export default function NovaPecaPage() {
         </form>
       </div>
     </>
+  )
+}
+
+export default function NovaPecaPage() {
+  return (
+    <Suspense>
+      <NovaPecaContent />
+    </Suspense>
   )
 }
