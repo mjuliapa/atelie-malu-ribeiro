@@ -5,10 +5,9 @@ import { createClient } from '@/lib/supabase/client'
 import { LogoMark } from '@/components/shared/LogoMark'
 
 export default function OnboardingPage() {
-  const supabase = createClient()
-
   useEffect(() => {
     async function check() {
+      const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { window.location.href = '/login'; return }
 
