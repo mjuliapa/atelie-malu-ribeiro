@@ -9,6 +9,10 @@ import { useRouter } from 'next/navigation'
 type ClayType = { id: string; name: string; price: number }
 type Student = { id: string; full_name: string }
 
+function cn(...classes: (string | boolean | undefined)[]) {
+  return classes.filter(Boolean).join(' ')
+}
+
 export default function NovaArgilaPage() {
   const router = useRouter()
   const [clayTypes, setClayTypes] = useState<ClayType[]>([])
@@ -19,19 +23,15 @@ export default function NovaArgilaPage() {
   const [saleDate, setSaleDate] = useState(new Date().toISOString().split('T')[0])
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
-  const supabase = createClient()
 
   useEffect(() => {
-    async function load() {
-      const [{ data: ct }, { data: st }] = await Promise.all([
-        supabase.from('clay_types').select('*').eq('is_active', true).order('price').order('name'),
-        supabase.from('profiles').select('id, full_name').eq('role', 'student').eq('status', 'active').order('full_name'),
-      ])
-      setClayTypes(ct ?? [])
-      setStudents(st ?? [])
-      if (ct?.length) setClayTypeId(ct[0].id)
-    }
-    load()
+    fetch('/api/admin/form-data')
+      .then(r => r.json())
+      .then(({ students, clayTypes }) => {
+        setStudents(students)
+        setClayTypes(clayTypes)
+        if (clayTypes.length) setClayTypeId(clayTypes[0].id)
+      })
   }, [])
 
   const selectedClay = clayTypes.find(c => c.id === clayTypeId)
@@ -41,7 +41,7 @@ export default function NovaArgilaPage() {
     e.preventDefault()
     if (!studentId || !clayTypeId) return
     setLoading(true)
-
+    const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
@@ -67,22 +67,48 @@ export default function NovaArgilaPage() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-1.5">Aluna</label>
-            <select required value={studentId} onChange={e => setStudentId(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-brand-line bg-white text-brand-text focus:outline-none focus:border-brand-mauve">
-              <option value="">Selecione a aluna</option>
-              {students.map(s => <option key={s.id} value={s.id}>{s.full_name}</option>)}
-            </select>
+            <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-2">Aluna</label>
+            {students.length === 0 ? (
+              <div className="h-10 bg-brand-cream rounded-xl animate-pulse" />
+            ) : (
+              <div className="grid grid-cols-1 gap-2">
+                {students.map(s => (
+                  <button key={s.id} type="button" onClick={() => setStudentId(s.id)}
+                    className={cn(
+                      'px-4 py-3 rounded-xl border text-sm text-left transition-colors',
+                      studentId === s.id
+                        ? 'border-brand-mauve bg-brand-blush text-brand-mauve font-medium'
+                        : 'border-brand-line bg-white text-brand-text hover:border-brand-mauve'
+                    )}>
+                    {s.full_name}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div>
-            <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-1.5">Tipo de argila</label>
-            <select required value={clayTypeId} onChange={e => setClayTypeId(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-brand-line bg-white text-brand-text focus:outline-none focus:border-brand-mauve">
-              {clayTypes.map(c => (
-                <option key={c.id} value={c.id}>{c.name} — {formatCurrency(c.price)}/pacote</option>
-              ))}
-            </select>
+            <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-2">Tipo de argila</label>
+            {clayTypes.length === 0 ? (
+              <div className="h-10 bg-brand-cream rounded-xl animate-pulse" />
+            ) : (
+              <div className="grid grid-cols-1 gap-2">
+                {clayTypes.map(c => (
+                  <button key={c.id} type="button" onClick={() => setClayTypeId(c.id)}
+                    className={cn(
+                      'px-4 py-3 rounded-xl border text-sm text-left transition-colors flex items-center justify-between',
+                      clayTypeId === c.id
+                        ? 'border-brand-mauve bg-brand-blush text-brand-mauve font-medium'
+                        : 'border-brand-line bg-white text-brand-text hover:border-brand-mauve'
+                    )}>
+                    <span>{c.name}</span>
+                    <span className={cn('text-xs', clayTypeId === c.id ? 'text-brand-mauve/70' : 'text-brand-muted')}>
+                      {formatCurrency(c.price)}/pacote
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div>
@@ -109,7 +135,6 @@ export default function NovaArgilaPage() {
               className="w-full px-4 py-3 rounded-xl border border-brand-line bg-white text-brand-text focus:outline-none focus:border-brand-mauve" />
           </div>
 
-          {/* Calculadora */}
           {total > 0 && (
             <div className="bg-brand-blush rounded-xl p-4 flex justify-between items-center">
               <div>

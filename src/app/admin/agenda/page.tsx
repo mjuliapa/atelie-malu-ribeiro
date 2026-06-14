@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { AdminNavHeader } from '@/components/admin/AdminNav'
 
@@ -35,8 +35,15 @@ export default function AdminAgendaPage() {
   const [showAttendance, setShowAttendance] = useState(false)
   const [preselectedDate, setPreselectedDate] = useState<Date | null>(null)
 
-  const weekStart = startOfWeek(currentDate, { weekStartsOn: 0 })
-  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i))
+  // ✅ memoizado — não muda a cada render
+  const weekStart = useMemo(
+    () => startOfWeek(currentDate, { weekStartsOn: 0 }),
+    [currentDate]
+  )
+  const weekDays = useMemo(
+    () => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)),
+    [weekStart]
+  )
 
   const loadSlots = useCallback(async () => {
     setLoading(true)
@@ -220,9 +227,7 @@ export default function AdminAgendaPage() {
 
             {/* Resumo da semana */}
             <div className="bg-white rounded-xl p-4 shadow-card space-y-3">
-              <h3 className="font-display text-base text-brand-text">
-                Esta semana
-              </h3>
+              <h3 className="font-display text-base text-brand-text">Esta semana</h3>
               {loading ? (
                 <div className="space-y-2">
                   {[1, 2].map((i) => (
@@ -274,12 +279,8 @@ export default function AdminAgendaPage() {
             ) : daySlots.length === 0 ? (
               <div className="bg-white rounded-xl p-8 text-center shadow-card">
                 <div className="text-4xl mb-3">🏺</div>
-                <p className="text-brand-text font-display text-base mb-1">
-                  Nenhuma aula neste dia
-                </p>
-                <p className="text-sm text-brand-muted">
-                  Toque em "Nova aula" para criar um horário.
-                </p>
+                <p className="text-brand-text font-display text-base mb-1">Nenhuma aula neste dia</p>
+                <p className="text-sm text-brand-muted">Toque em "Nova aula" para criar um horário.</p>
               </div>
             ) : (
               <div className="space-y-3">
@@ -328,40 +329,21 @@ export default function AdminAgendaPage() {
         <CreateSlotModal
           preselectedDate={preselectedDate}
           onClose={() => setShowCreateModal(false)}
-          onCreated={() => {
-            setShowCreateModal(false)
-            loadSlots()
-          }}
+          onCreated={() => { setShowCreateModal(false); loadSlots() }}
         />
       )}
-
       {showBlockModal && selectedSlot && (
         <BlockSlotModal
           slot={selectedSlot}
-          onClose={() => {
-            setShowBlockModal(false)
-            setSelectedSlot(null)
-          }}
-          onUpdated={() => {
-            setShowBlockModal(false)
-            setSelectedSlot(null)
-            loadSlots()
-          }}
+          onClose={() => { setShowBlockModal(false); setSelectedSlot(null) }}
+          onUpdated={() => { setShowBlockModal(false); setSelectedSlot(null); loadSlots() }}
         />
       )}
-
       {showAttendance && selectedSlot && (
         <AttendanceModal
           slot={selectedSlot}
-          onClose={() => {
-            setShowAttendance(false)
-            setSelectedSlot(null)
-          }}
-          onSaved={() => {
-            setShowAttendance(false)
-            setSelectedSlot(null)
-            loadSlots()
-          }}
+          onClose={() => { setShowAttendance(false); setSelectedSlot(null) }}
+          onSaved={() => { setShowAttendance(false); setSelectedSlot(null); loadSlots() }}
         />
       )}
     </>

@@ -28,6 +28,7 @@ export default async function AdminDashboardPage() {
 
   const totalOpen = openValue?.reduce((sum, p) => sum + p.calculated_value, 0) ?? 0
   const totalClay = openClay?.reduce((sum, c) => sum + c.total_value, 0) ?? 0
+  const openClayCount = openClay?.length ?? 0
   const totalReceiver = totalOpen + totalClay
 
   return (
@@ -64,16 +65,19 @@ export default async function AdminDashboardPage() {
           </Link>
         </div>
 
-        {/* Argila em aberto */}
-        {totalClay > 0 && (
-          <Link href="/admin/argila" className="flex items-center justify-between bg-white rounded-xl p-4 shadow-card">
-            <div>
-              <p className="text-xs text-brand-muted mb-0.5">Argila em aberto</p>
-              <p className="font-display text-xl text-brand-text">{formatCurrency(totalClay)}</p>
-            </div>
+        {/* Argila em aberto — sempre visível */}
+        <Link href="/admin/argila" className="flex items-center justify-between bg-white rounded-xl p-4 shadow-card">
+          <div>
+            <p className="text-xs text-brand-muted mb-0.5">Argila em aberto</p>
+            <p className="font-display text-xl text-brand-text">
+              {openClayCount > 0 ? formatCurrency(totalClay) : '—'}
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-xs text-brand-mauve">{openClayCount} venda{openClayCount !== 1 ? 's' : ''}</p>
             <span className="text-xs text-brand-mauve">Ver →</span>
-          </Link>
-        )}
+          </div>
+        </Link>
 
         {/* Ações rápidas */}
         <div className="space-y-2">
@@ -85,7 +89,7 @@ export default async function AdminDashboardPage() {
             </Link>
             <Link href="/admin/argila/nova"
               className="flex items-center gap-2 bg-white text-brand-text border border-brand-line px-4 py-3 rounded-xl text-sm font-medium">
-              🏺 Argila
+              🏺 Nova Argila
             </Link>
             <Link href="/admin/fechamentos/novo"
               className="flex items-center gap-2 bg-white text-brand-text border border-brand-line px-4 py-3 rounded-xl text-sm font-medium col-span-2 justify-center">

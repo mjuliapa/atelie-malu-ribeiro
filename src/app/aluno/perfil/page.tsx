@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { LogoMark } from '@/components/shared/LogoMark'
 
 export default function AlunoPerfilPage() {
   const [fullName, setFullName] = useState('')
@@ -57,11 +56,6 @@ export default function AlunoPerfilPage() {
     <div className="px-4 pb-4">
       {/* Card único grande */}
       <div className="bg-white rounded-2xl shadow-card px-6 pt-8 pb-6">
-
-        {/* Logo */}
-        <div className="flex justify-center mb-8">
-          <LogoMark size={180} color="dark" />
-        </div>
 
         <h1 className="font-display text-xl text-brand-text text-center mb-6">Meu perfil</h1>
 

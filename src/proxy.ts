@@ -24,17 +24,14 @@ export async function proxy(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   const { pathname } = request.nextUrl
 
-  // Rotas públicas
   if (pathname.startsWith('/login') || pathname === '/') {
     return supabaseResponse
   }
 
-  // API routes — não proteger
   if (pathname.startsWith('/api/')) {
     return supabaseResponse
   }
 
-  // Sem sessão — vai pro login
   if (!user) {
     return NextResponse.redirect(new URL('/login', request.url))
   }

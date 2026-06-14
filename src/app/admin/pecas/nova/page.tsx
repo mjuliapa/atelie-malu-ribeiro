@@ -9,6 +9,10 @@ import { useRouter, useSearchParams } from 'next/navigation'
 type FiringType = { id: string; name: string; coefficient: number }
 type Student = { id: string; full_name: string }
 
+function cn(...classes: (string | boolean | undefined)[]) {
+  return classes.filter(Boolean).join(' ')
+}
+
 export default function NovaPecaPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -17,10 +21,8 @@ export default function NovaPecaPage() {
   const [students, setStudents] = useState<Student[]>([])
   const [firingTypes, setFiringTypes] = useState<FiringType[]>([])
   const [loading, setLoading] = useState(false)
-
   const [studentId, setStudentId] = useState(alunaParam ?? '')
   const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
   const [height, setHeight] = useState('')
   const [width, setWidth] = useState('')
   const [length, setLength] = useState('')
@@ -28,19 +30,14 @@ export default function NovaPecaPage() {
   const [notes, setNotes] = useState('')
   const [pieceDate, setPieceDate] = useState(new Date().toISOString().split('T')[0])
 
-  const supabase = createClient()
-
   useEffect(() => {
-    async function load() {
-      const [{ data: s }, { data: f }] = await Promise.all([
-        supabase.from('profiles').select('id, full_name').eq('role', 'student').eq('status', 'active').order('full_name'),
-        supabase.from('firing_types').select('*').eq('is_active', true).order('name'),
-      ])
-      setStudents(s ?? [])
-      setFiringTypes(f ?? [])
-      if (f?.length && !firingTypeId) setFiringTypeId(f[0].id)
-    }
-    load()
+    fetch('/api/admin/form-data')
+      .then(r => r.json())
+      .then(({ students, firingTypes }) => {
+        setStudents(students)
+        setFiringTypes(firingTypes)
+        if (firingTypes.length) setFiringTypeId(firingTypes[0].id)
+      })
   }, [])
 
   const h = parseFloat(height) || 0
@@ -54,14 +51,13 @@ export default function NovaPecaPage() {
     e.preventDefault()
     if (!studentId || !firingTypeId) return
     setLoading(true)
-
+    const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
     const { error } = await supabase.from('pieces').insert({
       student_id: studentId,
       name: name.trim(),
-      description: description.trim() || null,
       height: h,
       width: w,
       length: l,
@@ -86,17 +82,27 @@ export default function NovaPecaPage() {
         <h1 className="font-display text-2xl text-brand-text mb-5">Nova peça</h1>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Aluna */}
           <div>
-            <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-1.5">Aluna</label>
-            <select required value={studentId} onChange={e => setStudentId(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-brand-line bg-white text-brand-text focus:outline-none focus:border-brand-mauve">
-              <option value="">Selecione a aluna</option>
-              {students.map(s => <option key={s.id} value={s.id}>{s.full_name}</option>)}
-            </select>
+            <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-2">Aluna</label>
+            {students.length === 0 ? (
+              <div className="h-10 bg-brand-cream rounded-xl animate-pulse" />
+            ) : (
+              <div className="grid grid-cols-1 gap-2">
+                {students.map(s => (
+                  <button key={s.id} type="button" onClick={() => setStudentId(s.id)}
+                    className={cn(
+                      'px-4 py-3 rounded-xl border text-sm text-left transition-colors',
+                      studentId === s.id
+                        ? 'border-brand-mauve bg-brand-blush text-brand-mauve font-medium'
+                        : 'border-brand-line bg-white text-brand-text hover:border-brand-mauve'
+                    )}>
+                    {s.full_name}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Nome */}
           <div>
             <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-1.5">Nome da peça</label>
             <input required value={name} onChange={e => setName(e.target.value)}
@@ -104,14 +110,12 @@ export default function NovaPecaPage() {
               className="w-full px-4 py-3 rounded-xl border border-brand-line bg-white text-brand-text focus:outline-none focus:border-brand-mauve" />
           </div>
 
-          {/* Data */}
           <div>
             <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-1.5">Data</label>
             <input type="date" required value={pieceDate} onChange={e => setPieceDate(e.target.value)}
               className="w-full px-4 py-3 rounded-xl border border-brand-line bg-white text-brand-text focus:outline-none focus:border-brand-mauve" />
           </div>
 
-          {/* Dimensões */}
           <div>
             <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-1.5">Dimensões (cm)</label>
             <div className="grid grid-cols-3 gap-2">
@@ -130,16 +134,30 @@ export default function NovaPecaPage() {
             </div>
           </div>
 
-          {/* Tipo de queima */}
           <div>
-            <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-1.5">Tipo de queima</label>
-            <select required value={firingTypeId} onChange={e => setFiringTypeId(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-brand-line bg-white text-brand-text focus:outline-none focus:border-brand-mauve">
-              {firingTypes.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-            </select>
+            <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-2">Tipo de queima</label>
+            {firingTypes.length === 0 ? (
+              <div className="h-10 bg-brand-cream rounded-xl animate-pulse" />
+            ) : (
+              <div className="grid grid-cols-1 gap-2">
+                {firingTypes.map(f => (
+                  <button key={f.id} type="button" onClick={() => setFiringTypeId(f.id)}
+                    className={cn(
+                      'px-4 py-3 rounded-xl border text-sm text-left transition-colors flex items-center justify-between',
+                      firingTypeId === f.id
+                        ? 'border-brand-mauve bg-brand-blush text-brand-mauve font-medium'
+                        : 'border-brand-line bg-white text-brand-text hover:border-brand-mauve'
+                    )}>
+                    <span>{f.name}</span>
+                    <span className={cn('text-xs', firingTypeId === f.id ? 'text-brand-mauve/70' : 'text-brand-muted')}>
+                      coef. {f.coefficient}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Calculadora */}
           {volume > 0 && (
             <div className="bg-brand-blush rounded-xl p-4 space-y-2">
               <p className="text-xs font-medium tracking-widest uppercase text-brand-mauve">Cálculo automático</p>
@@ -160,7 +178,6 @@ export default function NovaPecaPage() {
             </div>
           )}
 
-          {/* Observações */}
           <div>
             <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-1.5">Observações</label>
             <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2}

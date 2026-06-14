@@ -113,7 +113,7 @@ export default function AlunoAgendaPage() {
   const daySlots = getSlotsForDay(selectedDate)
 
   return (
-    <div className="px-4 pb-4 space-y-4">
+    <div className="pt-20 px-4 pb-4 space-y-4">
       <div className="pt-2">
         <h1 className="font-display text-2xl text-brand-text">Agenda</h1>
         <p className="text-sm text-brand-muted">Escolha um dia para ver os horários disponíveis.</p>
@@ -134,7 +134,7 @@ export default function AlunoAgendaPage() {
               className={cn(
                 'flex flex-col items-center min-w-[52px] py-2.5 px-2 rounded-xl transition-colors flex-shrink-0',
                 isSelected
-                  ? 'bg-brand-mauve text-white'
+                  ? 'bg-brand-ink text-brand-cream border border-brand-ink'
                   : 'bg-white text-brand-text border border-brand-line hover:border-brand-mauve'
               )}
             >

@@ -52,7 +52,7 @@ export default function AlunoPecasPage() {
 
   return (
     <div className="px-4 pb-4 space-y-5">
-      <div className="pt-2">
+      <div className="pt-20">
         <h1 className="font-display text-2xl text-brand-text">Minhas peças</h1>
       </div>
 
