@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { AdminNavHeader } from '@/components/admin/AdminNav'
 
-const supabase = createClient()
 import { ScheduleSlot, Appointment } from '@/types'
 import { formatDate, formatSlotTime, cn } from '@/lib/utils'
 import {
@@ -46,6 +45,7 @@ export default function AdminAgendaPage() {
   )
 
   const loadSlots = useCallback(async () => {
+    const supabase = createClient()
     setLoading(true)
     const from = format(weekStart, 'yyyy-MM-dd')
     const to = format(addDays(weekStart, 6), 'yyyy-MM-dd')
