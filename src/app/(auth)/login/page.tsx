@@ -55,7 +55,10 @@ export default function LoginPage() {
           </button>
         </form>
       </div>
-      <p className="text-center text-xs text-brand-muted mt-6">Problemas para acessar? Fale com a Malu.</p>
+      <a href="https://wa.me/5561999826866" target="_blank" rel="noopener noreferrer"
+  className="block text-center text-xs text-brand-muted mt-6 hover:text-brand-mauve transition-colors">
+  Problemas para acessar? Fale com a Malu 💬
+</a>
     </div>
   )
 }
