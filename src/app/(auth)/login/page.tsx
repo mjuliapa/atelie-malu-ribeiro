@@ -24,10 +24,9 @@ export default function LoginPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
-        redirect: 'manual',
       })
 
-      if (res.status === 401 || res.status === 500) {
+      if (!res.ok) {
         const data = await res.json().catch(() => ({}))
         setLoading(false)
         setError(data.error ?? 'Senha incorreta.')

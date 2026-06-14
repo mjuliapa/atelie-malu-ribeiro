@@ -4,7 +4,7 @@ import { createServerClient } from '@supabase/ssr'
 export async function POST(request: NextRequest) {
   const { email, password } = await request.json()
 
-  const response = NextResponse.redirect(new URL('/admin', request.url))
+  const tempResponse = NextResponse.next()
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
         getAll() { return request.cookies.getAll() },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => {
-            response.cookies.set(name, value, options)
+            tempResponse.cookies.set(name, value, options)
           })
         },
       },
@@ -22,9 +22,15 @@ export async function POST(request: NextRequest) {
   )
 
   const { error } = await supabase.auth.signInWithPassword({ email, password })
+
   if (error) {
     return NextResponse.json({ error: 'Senha incorreta.' }, { status: 401 })
   }
 
-  return response
+  const jsonResponse = NextResponse.json({ success: true })
+  tempResponse.cookies.getAll().forEach(({ name, value, ...options }) => {
+    jsonResponse.cookies.set(name, value, options)
+  })
+
+  return jsonResponse
 }
