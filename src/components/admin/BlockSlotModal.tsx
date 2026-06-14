@@ -40,7 +40,7 @@ export function BlockSlotModal({ slot, onClose, onUpdated }: BlockSlotModalProps
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       <div className="absolute inset-0 bg-brand-ink/40 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative w-full max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-xl px-6 py-6 z-10" style={{maxHeight: '85dvh', overflowY: 'auto'}}>
+      <div className="relative w-full max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-xl px-6 py-6 z-10" style={{maxHeight: '80vh', overflowY: 'scroll', WebkitOverflowScrolling: 'touch'} as React.CSSProperties}>
         <div className="absolute top-2 left-1/2 -translate-x-1/2 w-10 h-1 bg-brand-line rounded-full sm:hidden" />
 
         <div className="flex items-center justify-between mb-5">
