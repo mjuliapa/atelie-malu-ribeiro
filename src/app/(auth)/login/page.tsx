@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
 import { LogoMark } from '@/components/shared/LogoMark'
 
 type Step = 'email' | 'otp'
@@ -12,7 +13,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [resendCooldown, setResendCooldown] = useState(0)
-  const [tokenHash, setTokenHash] = useState('')
 
   async function handleSendOTP(e: React.FormEvent) {
     e.preventDefault()
@@ -33,7 +33,6 @@ export default function LoginPage() {
       return
     }
 
-    setTokenHash(data.token_hash ?? '')
     setStep('otp')
     startResendCooldown()
   }
@@ -41,12 +40,29 @@ export default function LoginPage() {
   async function handleVerifyOTP(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
-    const params = new URLSearchParams({
-      token_hash: tokenHash,
-      type: 'magiclink',
-      otp,
+    setError(null)
+
+    const supabase = createClient()
+    const { data, error } = await supabase.auth.verifyOtp({
+      email,
+      token: otp,
+      type: 'email',
     })
-    window.location.href = `/api/auth/callback?${params.toString()}`
+
+    if (error || !data.user) {
+      setLoading(false)
+      setError('Código inválido ou expirado. Tente novamente.')
+      return
+    }
+
+    // redireciona por role
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', data.user.id)
+      .single()
+
+    window.location.href = profile?.role === 'admin' ? '/admin' : '/aluno/agenda'
   }
 
   async function handleResend() {
@@ -60,14 +76,13 @@ export default function LoginPage() {
       body: JSON.stringify({ email }),
     })
 
-    const data = await res.json()
     setLoading(false)
     setOtp('')
 
     if (res.ok) {
-      setTokenHash(data.token_hash ?? '')
       startResendCooldown()
     } else {
+      const data = await res.json()
       setError(data.error ?? 'Não foi possível reenviar.')
     }
   }
