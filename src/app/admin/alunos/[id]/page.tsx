@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { AdminNavHeader } from '@/components/admin/AdminNav'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import Link from 'next/link'
@@ -8,28 +9,26 @@ export default async function AlunaDetailPage({ params }: { params: Promise<{ id
   const { id } = await params
   const supabase = await createClient()
 
-  const { data: aluna } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', id)
-    .single()
+  const admin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
 
+  const { data: aluna } = await supabase.from('profiles').select('*').eq('id', id).single()
   if (!aluna) notFound()
 
-  const { data: pecas } = await supabase
-    .from('pieces')
-    .select('*, firing_types(name)')
-    .eq('student_id', id)
-    .order('created_at', { ascending: false })
-
-  const { data: fechamentos } = await supabase
-    .from('monthly_closings')
-    .select('*')
-    .eq('student_id', id)
-    .order('created_at', { ascending: false })
+  const [{ data: pecas }, { data: argilas }, { data: fechamentos }] = await Promise.all([
+    admin.from('pieces').select('*, firing_types(name)').eq('student_id', id).order('created_at', { ascending: false }),
+    admin.from('clay_sales').select('*, clay_types(name)').eq('student_id', id).order('created_at', { ascending: false }),
+    admin.from('monthly_closings').select('*').eq('student_id', id).order('created_at', { ascending: false }),
+  ])
 
   const pecasAbertas = pecas?.filter(p => p.status === 'open') ?? []
-  const totalAberto = pecasAbertas.reduce((sum, p) => sum + p.calculated_value, 0)
+  const argilasAbertas = argilas?.filter(a => a.status === 'open') ?? []
+  const totalPecasAberto = pecasAbertas.reduce((sum, p) => sum + p.calculated_value, 0)
+  const totalArgilaAberto = argilasAbertas.reduce((sum, a) => sum + a.total_value, 0)
+  const totalAberto = totalPecasAberto + totalArgilaAberto
 
   const statusLabel: Record<string, string> = { open: 'Em aberto', closed: 'Fechada', paid: 'Paga', cancelled: 'Cancelada' }
   const statusColor: Record<string, string> = {
@@ -38,6 +37,12 @@ export default async function AlunaDetailPage({ params }: { params: Promise<{ id
     paid: 'bg-status-paid-bg text-status-paid-text',
     cancelled: 'bg-brand-cream text-brand-muted',
   }
+  const argilaStatusColor: Record<string, string> = {
+    open: 'bg-status-open-bg text-status-open-text',
+    closed: 'bg-status-closed-bg text-status-closed-text',
+    paid: 'bg-status-paid-bg text-status-paid-text',
+  }
+  const argilaStatusLabel: Record<string, string> = { open: 'Em aberto', closed: 'Fechado', paid: 'Pago' }
 
   return (
     <>
@@ -68,6 +73,17 @@ export default async function AlunaDetailPage({ params }: { params: Promise<{ id
             <p className="font-display text-2xl text-brand-text">{pecas?.length ?? 0}</p>
           </div>
         </div>
+
+        {/* Argila resumo */}
+        {argilasAbertas.length > 0 && (
+          <div className="bg-white rounded-xl p-4 shadow-card flex justify-between items-center">
+            <div>
+              <p className="text-xs text-brand-muted mb-0.5">Argila em aberto</p>
+              <p className="font-display text-xl text-brand-text">{formatCurrency(totalArgilaAberto)}</p>
+            </div>
+            <p className="text-xs text-brand-mauve">{argilasAbertas.length} venda{argilasAbertas.length !== 1 ? 's' : ''}</p>
+          </div>
+        )}
 
         {/* Ações */}
         <div className="grid grid-cols-2 gap-2">
@@ -107,6 +123,31 @@ export default async function AlunaDetailPage({ params }: { params: Promise<{ id
             </div>
           )}
         </div>
+
+        {/* Argila */}
+        {argilas && argilas.length > 0 && (
+          <div className="space-y-2">
+            <h2 className="font-display text-base text-brand-text">Argila</h2>
+            <div className="bg-white rounded-xl shadow-card divide-y divide-brand-line">
+              {argilas.map((a) => (
+                <div key={a.id} className="flex items-center gap-3 px-4 py-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-brand-text">
+                      {a.quantity}x {(a.clay_types as any)?.name ?? 'Argila'}
+                    </p>
+                    <p className="text-xs text-brand-muted">{formatDate(a.sale_date)}</p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-sm font-medium text-brand-text">{formatCurrency(a.total_value)}</p>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${argilaStatusColor[a.status]}`}>
+                      {argilaStatusLabel[a.status]}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Fechamentos */}
         {fechamentos && fechamentos.length > 0 && (

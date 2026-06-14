@@ -65,10 +65,10 @@ export function CreateSlotModal({ preselectedDate, onClose, onCreated }: CreateS
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       <div className="absolute inset-0 bg-brand-ink/40 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative w-full max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-xl px-6 py-6 z-10" style={{maxHeight: '80vh', overflowY: 'scroll', WebkitOverflowScrolling: 'touch'} as React.CSSProperties}>
+      <div className="relative w-full max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-xl z-10 flex flex-col" style={{maxHeight: '85svh'} as React.CSSProperties}>
         <div className="absolute top-2 left-1/2 -translate-x-1/2 w-10 h-1 bg-brand-line rounded-full sm:hidden" />
 
-        <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center justify-between px-6 pt-6 pb-0 flex-shrink-0">
           <h2 className="font-display text-xl text-brand-text">Nova aula</h2>
           <button onClick={onClose} className="p-2 text-brand-muted hover:text-brand-text rounded-lg hover:bg-brand-cream transition-colors">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-5 h-5">
@@ -78,7 +78,8 @@ export function CreateSlotModal({ preselectedDate, onClose, onCreated }: CreateS
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
           <div>
             <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-1.5">Data</label>
             <input type="date" required value={date} onChange={(e) => setDate(e.target.value)}
@@ -125,7 +126,8 @@ export function CreateSlotModal({ preselectedDate, onClose, onCreated }: CreateS
 
           {error && <p className="text-sm text-status-open-text bg-status-open-bg rounded-lg px-3 py-2">{error}</p>}
 
-          <div className="flex gap-3 pt-1">
+        </div>
+          <div className="flex gap-3 px-6 pb-6 pt-2 flex-shrink-0 border-t border-brand-line">
             <button type="button" onClick={onClose}
               className="flex-1 py-3 px-4 bg-white text-brand-muted border border-brand-line rounded-lg font-medium text-sm hover:bg-brand-cream transition-colors">
               Cancelar
