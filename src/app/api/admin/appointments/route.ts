@@ -56,6 +56,19 @@ export async function POST(request: NextRequest) {
       .select()
       .single()
     if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+
+    // desconta 1 crédito
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('credits')
+      .eq('id', body.student_id)
+      .single()
+    if (profile && profile.credits > 0) {
+      await supabase.from('profiles')
+        .update({ credits: profile.credits - 1 })
+        .eq('id', body.student_id)
+    }
+
     return NextResponse.json(data)
   }
 
@@ -66,6 +79,19 @@ export async function POST(request: NextRequest) {
     .select()
     .single()
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+
+  // desconta 1 crédito
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('credits')
+    .eq('id', body.student_id)
+    .single()
+  if (profile && profile.credits > 0) {
+    await supabase.from('profiles')
+      .update({ credits: profile.credits - 1 })
+      .eq('id', body.student_id)
+  }
+
   return NextResponse.json(data)
 }
 
