@@ -33,8 +33,9 @@ export default async function AdminDashboardPage() {
   const argilaClosed = (argilas ?? []).filter(a => a.status === 'closed').reduce((s, a) => s + a.total_value, 0)
   const argilaPaid   = (argilas ?? []).filter(a => a.status === 'paid').reduce((s, a) => s + a.total_value, 0)
 
-  const fechAwaiting = (fechamentos ?? []).filter(f => f.status === 'awaiting_payment').reduce((s, f) => s + f.total_value, 0)
-  const fechPaid     = (fechamentos ?? []).filter(f => f.status === 'paid').reduce((s, f) => s + f.total_value, 0)
+  const fechOpen    = (fechamentos ?? []).filter(f => f.status === 'awaiting_payment').reduce((s, f) => s + f.total_value, 0)
+  const fechClosed  = (fechamentos ?? []).filter(f => f.status === 'closed').reduce((s, f) => s + f.total_value, 0)
+  const fechPaid    = (fechamentos ?? []).filter(f => f.status === 'paid').reduce((s, f) => s + f.total_value, 0)
 
   return (
     <>
@@ -47,7 +48,6 @@ export default async function AdminDashboardPage() {
           </p>
         </div>
 
-        {/* Peças */}
         <Link href="/admin/pecas" className="block bg-white rounded-xl shadow-card p-4 space-y-3">
           <div className="flex items-center gap-2">
             <span className="text-base">🏺</span>
@@ -69,7 +69,6 @@ export default async function AdminDashboardPage() {
           </div>
         </Link>
 
-        {/* Argila */}
         <Link href="/admin/argila" className="block bg-white rounded-xl shadow-card p-4 space-y-3">
           <div className="flex items-center gap-2">
             <span className="text-base">🪨</span>
@@ -91,25 +90,27 @@ export default async function AdminDashboardPage() {
           </div>
         </Link>
 
-        {/* Fechamentos */}
         <Link href="/admin/fechamentos" className="block bg-brand-blush rounded-xl shadow-card p-4 space-y-3">
           <div className="flex items-center gap-2">
             <span className="text-base">📋</span>
             <p className="text-xs font-medium tracking-widest uppercase text-brand-mauve">Fechamentos</p>
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             <div>
               <p className="text-[10px] text-brand-mauve/70 mb-0.5">Em aberto</p>
-              <p className="font-display text-lg text-brand-mauve">{formatCurrency(fechAwaiting)}</p>
+              <p className="font-display text-sm text-brand-mauve">{formatCurrency(fechOpen)}</p>
             </div>
             <div>
-              <p className="text-[10px] text-brand-mauve/70 mb-0.5">Pagos</p>
-              <p className="font-display text-lg text-brand-mauve">{formatCurrency(fechPaid)}</p>
+              <p className="text-[10px] text-brand-mauve/70 mb-0.5">Fechado</p>
+              <p className="font-display text-sm text-brand-mauve">{formatCurrency(fechClosed)}</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-brand-mauve/70 mb-0.5">Pago</p>
+              <p className="font-display text-sm text-brand-mauve">{formatCurrency(fechPaid)}</p>
             </div>
           </div>
         </Link>
 
-        {/* Info cards */}
         <div className="grid grid-cols-2 gap-3">
           <Link href="/admin/agenda" className="bg-white rounded-xl p-4 shadow-card">
             <div className="flex items-center gap-1.5 mb-1">
@@ -127,7 +128,6 @@ export default async function AdminDashboardPage() {
           </Link>
         </div>
 
-        {/* Ações rápidas */}
         <div className="space-y-2">
           <h2 className="font-display text-base text-brand-text">Ações rápidas</h2>
           <div className="grid grid-cols-2 gap-2">
@@ -141,7 +141,7 @@ export default async function AdminDashboardPage() {
             </Link>
             <Link href="/admin/fechamentos/pacote"
               className="flex items-center justify-center gap-2 bg-white text-brand-text border border-brand-line px-4 py-3 rounded-xl text-sm font-medium">
-              📦 Novo pacote
+              🖊️ Novo pacote
             </Link>
             <Link href="/admin/fechamentos/novo"
               className="flex items-center justify-center gap-2 bg-white text-brand-text border border-brand-line px-4 py-3 rounded-xl text-sm font-medium">

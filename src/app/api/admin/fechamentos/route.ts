@@ -37,10 +37,13 @@ export async function GET(request: NextRequest) {
     })
   }
 
-  const { data, error } = await supabase
+  const studentId = searchParams.get('student_id')
+  let listQuery = supabase
     .from('monthly_closings')
     .select('*')
     .order('created_at', { ascending: false })
+  if (studentId) listQuery = listQuery.eq('student_id', studentId)
+  const { data, error } = await listQuery
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
 

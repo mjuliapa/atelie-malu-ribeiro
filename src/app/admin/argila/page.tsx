@@ -18,7 +18,7 @@ type Sale = {
 
 export default function AdminArgilaPage() {
   const [sales, setSales] = useState<Sale[]>([])
-  const [filter, setFilter] = useState<'all' | 'open' | 'paid'>('all')
+  const [filter, setFilter] = useState<'all' | 'open' | 'closed' | 'paid'>('all')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -35,7 +35,9 @@ export default function AdminArgilaPage() {
     closed: 'bg-status-closed-bg text-status-closed-text',
     paid: 'bg-status-paid-bg text-status-paid-text',
   }
-  const statusLabel: Record<string, string> = { open: 'Em aberto', closed: 'Fechado', paid: 'Pago' }
+  const statusLabel: Record<string, string> = {
+    open: 'Em aberto', closed: 'Fechada', paid: 'Paga'
+  }
 
   return (
     <>
@@ -58,10 +60,10 @@ export default function AdminArgilaPage() {
           </div>
         )}
 
-        <div className="flex gap-2">
-          {(['all', 'open', 'paid'] as const).map(f => (
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {(['all', 'open', 'closed', 'paid'] as const).map(f => (
             <button key={f} onClick={() => setFilter(f)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+              className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
                 filter === f ? 'bg-brand-ink text-brand-cream' : 'bg-white text-brand-muted border border-brand-line'
               }`}>
               {f === 'all' ? 'Todas' : statusLabel[f]}
