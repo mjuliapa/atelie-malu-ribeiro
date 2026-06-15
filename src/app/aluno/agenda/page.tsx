@@ -100,12 +100,17 @@ export default function AlunoAgendaPage() {
     const confirmed = window.confirm('Cancelar este agendamento?')
     if (!confirmed) return
 
-    await supabase
-      .from('appointments')
-      .update({ status: 'cancelled', cancelled_at: new Date().toISOString() })
-      .eq('slot_id', slotId)
-      .eq('student_id', userId)
-      .eq('status', 'confirmed')
+    await fetch('/api/admin/appointments', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        slot_id: slotId,
+        student_id: userId,
+        status: 'cancelled',
+        cancelled_at: new Date().toISOString(),
+        restore_credit: true,
+      }),
+    })
 
     loadData()
   }

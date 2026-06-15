@@ -71,8 +71,43 @@ export async function POST(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   const body = await request.json()
-  const { id, ...update } = body
+  const { id, slot_id, student_id, restore_credit, ...update } = body
   const supabase = getSupabase()
+
+  // cancelamento por slot_id + student_id (fluxo da aluna)
+  if (slot_id && student_id) {
+    const { data: appt } = await supabase
+      .from('appointments')
+      .select('id')
+      .eq('slot_id', slot_id)
+      .eq('student_id', student_id)
+      .eq('status', 'confirmed')
+      .single()
+
+    if (!appt) return NextResponse.json({ error: 'Agendamento não encontrado' }, { status: 404 })
+
+    const { error } = await supabase
+      .from('appointments')
+      .update({ status: 'cancelled', cancelled_at: update.cancelled_at })
+      .eq('id', appt.id)
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+
+    // devolve crédito
+    if (restore_credit) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('credits')
+        .eq('id', student_id)
+        .single()
+      const current = profile?.credits ?? 0
+      await supabase.from('profiles').update({ credits: current + 1 }).eq('id', student_id)
+    }
+
+    return NextResponse.json({ ok: true })
+  }
+
+  // atualização por id (fluxo admin)
   const { error } = await supabase.from('appointments').update(update).eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
   return NextResponse.json({ ok: true })

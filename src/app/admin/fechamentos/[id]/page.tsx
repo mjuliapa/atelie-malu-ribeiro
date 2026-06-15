@@ -279,7 +279,7 @@ export default function FechamentoDetailPage() {
       <div className="px-4 pt-4 pb-6 space-y-4">
         <div>
           <h1 className="font-display text-2xl text-brand-text">{nome}</h1>
-          <p className="text-sm text-brand-muted capitalize">{fechamento.reference_month}</p>
+          <p className="text-sm text-brand-muted">{fechamento.reference_month}</p>
         </div>
         <div className={`rounded-xl px-4 py-3 flex items-center justify-between ${fechamento.status === 'paid' ? 'bg-status-paid-bg' : 'bg-status-open-bg'}`}>
           <p className={`text-sm font-medium ${fechamento.status === 'paid' ? 'text-status-paid-text' : 'text-status-open-text'}`}>

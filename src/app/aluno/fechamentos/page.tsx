@@ -76,7 +76,7 @@ export default function AlunoFechamentosPage() {
           {fechamentos.map(f => (
             <div key={f.id} className="flex items-center justify-between px-4 py-3">
               <div>
-                <p className="text-sm font-medium text-brand-text capitalize">{f.reference_month}</p>
+                <p className="text-sm font-medium text-brand-text">{f.reference_month}</p>
                 {f.paid_at && (
                   <p className="text-xs text-brand-muted">Pago em {formatDate(f.paid_at)}</p>
                 )}
