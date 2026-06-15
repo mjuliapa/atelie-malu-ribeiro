@@ -33,7 +33,7 @@ export default async function AdminDashboardPage() {
 
   return (
     <>
-      <AdminNavHeader title="Ateliê" />
+      <AdminNavHeader title="Ateliê Malu Ribeiro" />
       <div className="px-4 pt-4 pb-6 space-y-5">
         <div>
           <h1 className="font-display text-2xl text-brand-text">Olá, Malu 🌸</h1>

@@ -95,7 +95,7 @@ export default function FechamentoDetailPage() {
       const pageW = 210
       const margin = 20
 
-      const logoBase64 = await fetch('/logo-mauve.png')
+      const logoBase64 = await fetch('/logo.png')
         .then(r => r.blob())
         .then(blob => new Promise<string>((resolve) => {
           const reader = new FileReader()
