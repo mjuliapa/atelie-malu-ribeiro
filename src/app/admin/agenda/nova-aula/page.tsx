@@ -67,7 +67,7 @@ function NovaAulaContent() {
   return (
     <>
       <AdminNavHeader title="Nova aula" showBack />
-      <div className="px-4 pt-4 pb-24 space-y-5">
+      <div className="px-4 pt-4 pb-48 space-y-5">
         <h1 className="font-display text-2xl text-brand-text">Nova aula</h1>
 
         <div>
@@ -120,7 +120,7 @@ function NovaAulaContent() {
           </div>
         )}
 
-        <div className="fixed bottom-0 left-0 right-0 px-4 pb-8 pt-4 bg-white border-t border-brand-line">
+        <div className="fixed bottom-0 left-0 right-0 px-4 pb-24 pt-4 bg-white border-t border-brand-line">
           <button onClick={handleSubmit} disabled={loading}
             className="w-full py-4 bg-brand-ink text-brand-cream rounded-xl font-medium text-base disabled:opacity-50">
             {loading ? 'Criando...' : 'Criar aula'}
