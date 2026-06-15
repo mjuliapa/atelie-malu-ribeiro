@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     const [{ data: fechamento }, { data: items }] = await Promise.all([
       supabase
         .from('monthly_closings')
-        .select('*, profiles:student_id(full_name, phone)')
+        .select('*, profiles!inner(full_name, phone)')
         .eq('id', id)
         .single(),
       supabase
@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
   // lista todos (para /admin/fechamentos se precisar no futuro)
   const { data, error } = await supabase
     .from('monthly_closings')
-    .select('*, profiles:student_id(full_name, phone)')
+    .select('*, profiles!inner(full_name, phone)')
     .order('created_at', { ascending: false })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
