@@ -10,7 +10,6 @@ import {
 } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { SlotCard } from '@/components/admin/SlotCard'
-import { CreateSlotModal } from '@/components/admin/CreateSlotModal'
 import { useRouter } from 'next/navigation'
 
 type ViewMode = 'week' | 'day'
@@ -21,7 +20,6 @@ export default function AdminAgendaPage() {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [slots, setSlots] = useState<ScheduleSlot[]>([])
   const [loading, setLoading] = useState(true)
-  const [showCreateModal, setShowCreateModal] = useState(false)
   const [preselectedDate, setPreselectedDate] = useState<Date | null>(null)
 
   const weekStart = useMemo(() => startOfWeek(currentDate, { weekStartsOn: 0 }), [currentDate])
@@ -164,7 +162,7 @@ export default function AdminAgendaPage() {
         )}
 
         <div className="fixed bottom-24 right-4">
-          <button onClick={() => { setPreselectedDate(currentDate); setShowCreateModal(true) }}
+          <button onClick={() => router.push(`/admin/agenda/nova-aula?date=${format(currentDate, 'yyyy-MM-dd')}`)}
             className="flex items-center gap-2 px-4 py-3 bg-brand-ink text-brand-cream rounded-full shadow-lg font-medium text-sm">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4">
               <line x1="12" y1="5" x2="12" y2="19" strokeLinecap="round" />
@@ -174,14 +172,6 @@ export default function AdminAgendaPage() {
           </button>
         </div>
       </div>
-
-      {showCreateModal && (
-        <CreateSlotModal
-          preselectedDate={preselectedDate}
-          onClose={() => setShowCreateModal(false)}
-          onCreated={() => { setShowCreateModal(false); loadSlots() }}
-        />
-      )}
     </>
   )
 }

@@ -97,6 +97,9 @@ function NovoFechamentoContent() {
     }
 
     if (argilasAbertas.length) {
+      await supabase.from('clay_closing_items').insert(
+        argilasAbertas.map(a => ({ closing_id: fechamento.id, clay_sale_id: a.id, value_snapshot: a.total_value }))
+      )
       await supabase.from('clay_sales').update({ status: 'closed' }).in('id', argilasAbertas.map(a => a.id))
     }
 

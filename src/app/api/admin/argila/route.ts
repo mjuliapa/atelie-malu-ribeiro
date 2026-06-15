@@ -5,12 +5,34 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const status = searchParams.get('status')
   const studentId = searchParams.get('student_id')
+  const closingId = searchParams.get('closing_id')
 
   const supabase = createSupabaseClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     { auth: { autoRefreshToken: false, persistSession: false } }
   )
+
+  // busca argilas de um fechamento específico via clay_closing_items
+  if (closingId) {
+    const { data, error } = await supabase
+      .from('clay_closing_items')
+      .select('id, value_snapshot, clay_sale_id, clay_sales(id, quantity, unit_price, total_value, sale_date, clay_types(name))')
+      .eq('closing_id', closingId)
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+
+    const result = (data ?? []).map((item: any) => ({
+      id: item.clay_sales?.id,
+      quantity: item.clay_sales?.quantity,
+      unit_price: item.clay_sales?.unit_price,
+      total_value: item.value_snapshot,
+      sale_date: item.clay_sales?.sale_date,
+      clay_types: item.clay_sales?.clay_types,
+    }))
+
+    return NextResponse.json(result)
+  }
 
   let query = supabase
     .from('clay_sales')

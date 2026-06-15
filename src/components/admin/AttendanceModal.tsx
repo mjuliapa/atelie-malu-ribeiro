@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { ScheduleSlot, Appointment, AttendanceStatus } from '@/types'
+import { ScheduleSlot, AttendanceStatus } from '@/types'
 import { formatSlotTime, cn } from '@/lib/utils'
 
 interface AttendanceModalProps {
@@ -26,49 +26,32 @@ export function AttendanceModal({ slot, onClose, onSaved }: AttendanceModalProps
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    loadAppointments()
-  }, [])
+  useEffect(() => { loadAppointments() }, [])
 
   async function loadAppointments() {
-    const supabase = createClient()
-    const { data } = await supabase
-      .from('appointments')
-      .select(`
-        id, status, student_id, modality,
-        profiles:student_id(full_name),
-        attendance(id, status, notes)
-      `)
-      .eq('slot_id', slot.id)
-      .eq('status', 'confirmed')
-
-    if (data) {
-      setRecords(
-        data.map((a: any) => {
-          const profile = Array.isArray(a.profiles) ? a.profiles[0] : a.profiles
-          return {
-            appointmentId: a.id,
-            studentName: profile?.full_name ?? 'Aluna',
-            status: a.attendance?.[0]?.status ?? 'present',
-            modality: a.modality ?? 'manual',
-            notes: a.attendance?.[0]?.notes ?? '',
-            existingAttendanceId: a.attendance?.[0]?.id,
-          }
-        })
-      )
+    const res = await fetch(`/api/admin/attendance?slot_id=${slot.id}`)
+    const data = await res.json()
+    if (Array.isArray(data)) {
+      setRecords(data.map((a: any) => {
+        const profile = Array.isArray(a.profiles) ? a.profiles[0] : a.profiles
+        const att = Array.isArray(a.attendance) ? a.attendance[0] : a.attendance
+        return {
+          appointmentId: a.id,
+          studentName: profile?.full_name ?? 'Aluna',
+          status: att?.status ?? 'present',
+          modality: a.modality ?? 'manual',
+          notes: att?.notes ?? '',
+          existingAttendanceId: att?.id,
+        }
+      }))
     }
     setLoading(false)
   }
 
   function updateRecord(appointmentId: string, field: string, value: string) {
-    setRecords((prev) =>
-      prev.map((r) =>
-        r.appointmentId === appointmentId ? { ...r, [field]: value } : r
-      )
-    )
+    setRecords(prev => prev.map(r => r.appointmentId === appointmentId ? { ...r, [field]: value } : r))
   }
 
-  // quantas vagas de torno já usadas (excluindo o próprio registro)
   function tornoUsed(excludeId: string) {
     return records.filter(r => r.appointmentId !== excludeId && r.modality === 'torno').length
   }
@@ -76,28 +59,20 @@ export function AttendanceModal({ slot, onClose, onSaved }: AttendanceModalProps
   async function handleSave() {
     setSaving(true)
     setError(null)
+    // createClient só para pegar user id — permitido
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
-    for (const record of records) {
-      // atualiza modalidade no appointment
-      await supabase.from('appointments')
-        .update({ modality: record.modality })
-        .eq('id', record.appointmentId)
+    const res = await fetch('/api/admin/attendance', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ records, recorded_by: user?.id }),
+    })
 
-      const payload = {
-        appointment_id: record.appointmentId,
-        status: record.status,
-        notes: record.notes.trim() || null,
-        recorded_by: user?.id,
-        recorded_at: new Date().toISOString(),
-      }
-
-      if (record.existingAttendanceId) {
-        await supabase.from('attendance').update(payload).eq('id', record.existingAttendanceId)
-      } else {
-        await supabase.from('attendance').insert(payload)
-      }
+    if (!res.ok) {
+      setError('Erro ao salvar presença. Tente novamente.')
+      setSaving(false)
+      return
     }
 
     setSaving(false)
@@ -115,10 +90,8 @@ export function AttendanceModal({ slot, onClose, onSaved }: AttendanceModalProps
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       <div className="absolute inset-0 bg-brand-ink/40 backdrop-blur-sm" onClick={onClose} />
-
       <div className="relative w-full max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-xl z-10 max-h-[85vh] flex flex-col">
         <div className="absolute top-2 left-1/2 -translate-x-1/2 w-10 h-1 bg-brand-line rounded-full sm:hidden" />
-
         <div className="px-6 py-5 border-b border-brand-line flex items-center justify-between">
           <div>
             <h2 className="font-display text-xl text-brand-text">Presença</h2>
@@ -135,81 +108,55 @@ export function AttendanceModal({ slot, onClose, onSaved }: AttendanceModalProps
         <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
           {loading ? (
             <div className="space-y-3">
-              {[1, 2, 3].map((i) => <div key={i} className="h-20 bg-brand-cream rounded-xl animate-pulse" />)}
+              {[1,2,3].map(i => <div key={i} className="h-20 bg-brand-cream rounded-xl animate-pulse" />)}
             </div>
           ) : records.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-brand-muted">Nenhuma aluna agendada nesta aula.</p>
             </div>
           ) : (
-            records.map((record) => (
+            records.map(record => (
               <div key={record.appointmentId} className="bg-brand-cream rounded-xl p-4 space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <div className="w-8 h-8 rounded-full bg-brand-blush flex items-center justify-center">
-                      <span className="text-sm font-medium text-brand-mauve">
-                        {record.studentName.charAt(0).toUpperCase()}
-                      </span>
+                      <span className="text-sm font-medium text-brand-mauve">{record.studentName.charAt(0).toUpperCase()}</span>
                     </div>
                     <span className="font-medium text-brand-text">{record.studentName}</span>
                   </div>
-
-                  {/* Modalidade */}
                   <div className="flex gap-1">
-                    <button
-                      type="button"
-                      onClick={() => updateRecord(record.appointmentId, 'modality', 'manual')}
-                      className={cn(
-                        'px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors',
-                        record.modality === 'manual'
-                          ? 'bg-brand-ink text-brand-cream border-brand-ink'
-                          : 'bg-white text-brand-muted border-brand-line'
-                      )}>
+                    <button type="button" onClick={() => updateRecord(record.appointmentId, 'modality', 'manual')}
+                      className={cn('px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors',
+                        record.modality === 'manual' ? 'bg-brand-ink text-brand-cream border-brand-ink' : 'bg-white text-brand-muted border-brand-line')}>
                       Manual
                     </button>
-                    <button
-                      type="button"
+                    <button type="button"
                       onClick={() => {
                         if (record.modality !== 'torno' && tornoUsed(record.appointmentId) >= tornoSpots) return
                         updateRecord(record.appointmentId, 'modality', 'torno')
                       }}
                       disabled={record.modality !== 'torno' && tornoUsed(record.appointmentId) >= tornoSpots}
-                      className={cn(
-                        'px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors',
-                        record.modality === 'torno'
-                          ? 'bg-brand-mauve text-white border-brand-mauve'
-                          : tornoUsed(record.appointmentId) >= tornoSpots
-                            ? 'bg-white text-brand-muted/40 border-brand-line cursor-not-allowed'
-                            : 'bg-white text-brand-muted border-brand-line'
-                      )}>
+                      className={cn('px-2.5 py-1 rounded-lg text-xs font-medium border transition-colors',
+                        record.modality === 'torno' ? 'bg-brand-mauve text-white border-brand-mauve'
+                          : tornoUsed(record.appointmentId) >= tornoSpots ? 'bg-white text-brand-muted/40 border-brand-line cursor-not-allowed'
+                          : 'bg-white text-brand-muted border-brand-line')}>
                       Torno
                     </button>
                   </div>
                 </div>
-
-                {/* Status de presença */}
                 <div className="flex gap-2">
-                  {statusOptions.map((opt) => (
-                    <button
-                      key={opt.value}
-                      type="button"
+                  {statusOptions.map(opt => (
+                    <button key={opt.value} type="button"
                       onClick={() => updateRecord(record.appointmentId, 'status', opt.value)}
-                      className={cn(
-                        'flex-1 py-1.5 rounded-lg text-xs font-medium border transition-colors',
-                        record.status === opt.value
-                          ? opt.color
-                          : 'bg-white text-brand-muted border-brand-line hover:border-brand-sand'
-                      )}>
+                      className={cn('flex-1 py-1.5 rounded-lg text-xs font-medium border transition-colors',
+                        record.status === opt.value ? opt.color : 'bg-white text-brand-muted border-brand-line hover:border-brand-sand')}>
                       {opt.label}
                     </button>
                   ))}
                 </div>
-
                 {record.status !== 'present' && (
-                  <input
-                    type="text"
-                    value={record.notes}
-                    onChange={(e) => updateRecord(record.appointmentId, 'notes', e.target.value)}
+                  <input type="text" value={record.notes}
+                    onChange={e => updateRecord(record.appointmentId, 'notes', e.target.value)}
                     placeholder="Observação (opcional)"
                     className="w-full px-3 py-2 rounded-lg border border-brand-line bg-white text-brand-text text-sm focus:outline-none focus:border-brand-mauve" />
                 )}
