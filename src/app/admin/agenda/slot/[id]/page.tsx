@@ -92,7 +92,9 @@ export default function SlotPage() {
   if (error || !slot) return <div className="p-8 text-center text-brand-muted">Aula não encontrada.</div>
 
   const confirmed = slot.appointments?.filter(a => a.status === 'confirmed') ?? []
-  const isPastSlot = isPast(parseISO(slot.start_time)) || isToday(parseISO(slot.start_time))
+  const slotDate = parseISO(slot.start_time)
+  const isPastSlot = isPast(slotDate)
+  const isSlotToday = isToday(slotDate)
 
   return (
     <>
@@ -151,7 +153,7 @@ export default function SlotPage() {
           )}
         </div>
 
-        {isPastSlot && !slot.is_blocked && confirmed.length > 0 && (
+        {(isPastSlot || isSlotToday) && !slot.is_blocked && confirmed.length > 0 && (
           <button onClick={() => setShowAttendance(true)}
             className="w-full py-3 bg-brand-ink text-brand-cream rounded-xl font-medium text-sm">
             ✓ Registrar presença
@@ -181,7 +183,7 @@ export default function SlotPage() {
           </button>
         </div>
 
-        {!isPastSlot && confirmed.length === 0 && (
+        {confirmed.length === 0 && (
           <button onClick={handleDelete}
             className="w-full py-3 bg-white text-status-open-text border border-status-open-text rounded-xl font-medium text-sm">
             Excluir aula
