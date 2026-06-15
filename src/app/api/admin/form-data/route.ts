@@ -11,7 +11,7 @@ export async function GET() {
     { auth: { autoRefreshToken: false, persistSession: false } }
   )
 
-  const { data: students, error: e1 } = await supabase.from('profiles').select('id, full_name').eq('role', 'student').eq('status', 'active').order('full_name')
+  const { data: students, error: e1 } = await supabase.from('profiles').select('id, full_name, credits, package_type').eq('role', 'student').eq('status', 'active').order('full_name')
   const { data: firingTypes, error: e2 } = await supabase.from('firing_types').select('id, name, coefficient').eq('is_active', true).order('name')
   const { data: clayTypes, error: e3 } = await supabase.from('clay_types').select('id, name, price').eq('is_active', true).order('price').order('name')
 

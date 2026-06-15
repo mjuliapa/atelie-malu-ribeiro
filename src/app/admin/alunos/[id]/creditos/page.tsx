@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { AdminNavHeader } from '@/components/admin/AdminNav'
 import { useParams, useRouter } from 'next/navigation'
 
@@ -14,12 +13,13 @@ export default function CreditosPage() {
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    const supabase = createClient()
-    supabase.from('profiles').select('credits, package_type').eq('id', id).single()
-      .then(({ data }) => {
-        if (data) {
-          setCredits(data.credits ?? 0)
-          setPackageType(data.package_type ?? 'manual')
+    fetch('/api/admin/form-data')
+      .then(r => r.json())
+      .then(({ students }) => {
+        const aluna = students.find((s: any) => s.id === id)
+        if (aluna) {
+          setCredits(aluna.credits ?? 0)
+          setPackageType(aluna.package_type ?? 'manual')
         }
         setLoading(false)
       })
@@ -27,8 +27,11 @@ export default function CreditosPage() {
 
   async function handleSave() {
     setSaving(true)
-    const supabase = createClient()
-    await supabase.from('profiles').update({ credits, package_type: packageType }).eq('id', id)
+    await fetch('/api/admin/credits', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, credits, package_type: packageType }),
+    })
     setSaving(false)
     router.back()
   }
@@ -37,9 +40,9 @@ export default function CreditosPage() {
 
   return (
     <>
-      <AdminNavHeader title="Créditos de aula" showBack />
+      <AdminNavHeader title="Creditos de aula" showBack />
       <div className="px-4 pt-4 pb-6 space-y-5">
-        <h1 className="font-display text-2xl text-brand-text">Créditos de aula</h1>
+        <h1 className="font-display text-2xl text-brand-text">Creditos de aula</h1>
 
         <div className="space-y-2">
           <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted">Tipo de pacote</label>
@@ -51,18 +54,18 @@ export default function CreditosPage() {
                     ? 'border-brand-mauve bg-brand-blush text-brand-mauve'
                     : 'border-brand-line bg-white text-brand-text'
                 }`}>
-                {t === 'manual' ? '✋ Manual — R$ 420' : '🏺 Torno — R$ 460'}
+                {t === 'manual' ? 'Manual - R$ 420' : 'Torno - R$ 460'}
               </button>
             ))}
           </div>
         </div>
 
         <div className="space-y-2">
-          <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted">Créditos disponíveis</label>
+          <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted">Creditos disponiveis</label>
           <div className="flex items-center gap-4">
             <button type="button" onClick={() => setCredits(c => Math.max(0, c - 1))}
               className="w-12 h-12 rounded-xl border border-brand-line bg-white text-brand-text text-xl font-bold flex items-center justify-center">
-              −
+              -
             </button>
             <span className="font-display text-4xl text-brand-text w-12 text-center">{credits}</span>
             <button type="button" onClick={() => setCredits(c => c + 1)}

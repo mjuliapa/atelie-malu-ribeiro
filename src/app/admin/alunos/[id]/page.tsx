@@ -205,7 +205,7 @@ export default async function AlunaDetailPage({ params }: { params: Promise<{ id
                 <Link key={f.id} href={`/admin/fechamentos/${f.id}`}
                   className="flex items-center gap-3 px-4 py-3 hover:bg-brand-cream transition-colors">
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-brand-text capitalize">{f.reference_month}</p>
+                    <p className="text-sm font-medium text-brand-text">{f.reference_month}</p>
                     <p className="text-xs text-brand-muted">{formatDate(f.created_at)}</p>
                   </div>
                   <div className="text-right">
