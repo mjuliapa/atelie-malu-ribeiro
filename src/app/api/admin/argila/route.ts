@@ -23,7 +23,8 @@ export async function GET(request: NextRequest) {
     if (error) return NextResponse.json({ error: error.message }, { status: 400 })
 
     const result = (data ?? []).map((item: any) => ({
-      id: item.clay_sales?.id,
+      id: item.id,
+      clay_sale_id: item.clay_sales?.id,
       quantity: item.clay_sales?.quantity,
       unit_price: item.clay_sales?.unit_price,
       total_value: item.value_snapshot,

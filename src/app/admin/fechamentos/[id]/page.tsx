@@ -25,6 +25,7 @@ type Item = {
 
 type ArgilaSale = {
   id: string
+  clay_sale_id?: string
   quantity: number
   total_value: number
   sale_date: string
@@ -67,7 +68,7 @@ export default function FechamentoDetailPage() {
         status: 'paid',
         paid_at: new Date().toISOString(),
         piece_ids: items.map(i => i.piece_id).filter(Boolean),
-        argila_ids: argilas.map(a => a.id),
+        argila_ids: argilas.map(a => a.clay_sale_id ?? a.id),
       }),
     })
     setFechamento(prev => prev ? { ...prev, status: 'paid', paid_at: new Date().toISOString() } : null)
@@ -106,7 +107,6 @@ export default function FechamentoDetailPage() {
       doc.setFillColor(MAUVE)
       doc.roundedRect(0, 0, pageW, 42, 0, 0, 'F')
       doc.addImage(logoBase64, 'PNG', pageW / 2 - 30, 6, 60, 28)
-
       doc.setFillColor(BLUSH)
       doc.rect(0, 42, pageW, 18, 'F')
       doc.setFont('helvetica', 'bold')
@@ -201,9 +201,6 @@ export default function FechamentoDetailPage() {
           doc.setTextColor(TEXT)
           const clayName = (a.clay_types as any)?.name ?? 'Argila'
           doc.text(a.quantity + 'x ' + clayName, margin + 2, y + 6.5)
-          doc.setTextColor(MUTED)
-          doc.setFontSize(8)
-          doc.text(formatDate(a.sale_date), margin + 2, y + 9.5)
           doc.setFont('helvetica', 'bold')
           doc.setFontSize(9)
           doc.setTextColor(TEXT)
@@ -250,13 +247,17 @@ export default function FechamentoDetailPage() {
 
       const pdfBlob = doc.output('blob')
       const blobUrl = URL.createObjectURL(pdfBlob)
-      window.open(blobUrl, '_blank')
 
-      const msg = 'Ola ' + nome + '!\n\nSegue o fechamento do Atelie Malu Ribeiro referente a ' + fechamento.reference_month + '.\n\nO PDF foi gerado - por favor salve e compartilhe aqui!\n\nTotal: ' + formatCurrency(fechamento.total_value) + '\nPIX: ' + PIX
-      const waUrl = phone
-        ? 'https://wa.me/55' + phone + '?text=' + encodeURIComponent(msg)
-        : 'https://wa.me/?text=' + encodeURIComponent(msg)
-      setTimeout(() => window.open(waUrl, '_blank'), 800)
+      const link = document.createElement('a')
+      link.href = blobUrl
+      link.download = 'fechamento-' + fechamento.reference_month.replace(/\s/g, '-') + '.pdf'
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+
+      if (phone) {
+        setTimeout(() => { window.location.href = 'https://wa.me/55' + phone }, 1000)
+      }
 
     } catch (err) {
       console.error('Erro ao gerar PDF:', err)
@@ -346,18 +347,13 @@ export default function FechamentoDetailPage() {
           <p className="text-sm font-medium text-brand-text">46.504.315/0001-77</p>
         </div>
         <div className="space-y-2">
-          <button
-            onClick={gerarPDFECompartilhar}
-            disabled={pdfLoading}
-            className="w-full py-3 bg-[#25D366] text-white rounded-xl font-medium text-sm flex items-center justify-center gap-2 disabled:opacity-60"
-          >
+          <button onClick={gerarPDFECompartilhar} disabled={pdfLoading}
+            className="w-full py-3 bg-[#25D366] text-white rounded-xl font-medium text-sm flex items-center justify-center gap-2 disabled:opacity-60">
             {pdfLoading ? 'Gerando PDF...' : 'Gerar PDF e enviar via WhatsApp'}
           </button>
           {fechamento.status !== 'paid' && (
-            <button
-              onClick={marcarPago}
-              className="w-full py-3 bg-brand-ink text-brand-cream rounded-xl font-medium text-sm"
-            >
+            <button onClick={marcarPago}
+              className="w-full py-3 bg-brand-ink text-brand-cream rounded-xl font-medium text-sm">
               Marcar como pago
             </button>
           )}
