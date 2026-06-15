@@ -139,7 +139,7 @@ function NovoFechamentoContent() {
                       <div className="flex items-center justify-between px-4 py-3">
                         <div>
                           <p className="text-sm font-medium text-brand-text">
-                            {aulasDoMes.length} aula{aulasDoMes.length !== 1 ? 's' : ''} — pacote {temTorno ? 'torno' : 'manual'}
+                             Pacote {temTorno ? 'torno' : 'manual'}
                           </p>
                           <p className="text-xs text-brand-muted">
                             {temTorno ? 'Inclui pelo menos 1 aula no torno' : 'Todas as aulas no manual'}
