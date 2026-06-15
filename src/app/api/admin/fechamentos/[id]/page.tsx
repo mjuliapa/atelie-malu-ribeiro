@@ -79,6 +79,7 @@ export default function FechamentoDetailPage() {
     try {
       const { jsPDF } = await import('jspdf')
       const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' })
+
       const MAUVE = '#9E6B68'
       const MAUVE_DARK = '#7A4F4C'
       const BLUSH = '#F2EBE6'
@@ -86,12 +87,14 @@ export default function FechamentoDetailPage() {
       const MUTED = '#9E8A88'
       const WHITE = '#FFFFFF'
       const PIX = '46.504.315/0001-77'
+
       const nome = fechamento.profiles?.full_name ?? 'Aluna'
       const phone = fechamento.profiles?.phone?.replace(/\D/g, '')
       const totalPecas = items.reduce((sum, i) => sum + i.value_snapshot, 0)
       const totalArgila = argilas.reduce((sum, a) => sum + a.total_value, 0)
       const pageW = 210
       const margin = 20
+
       doc.setFillColor(MAUVE)
       doc.roundedRect(0, 0, pageW, 38, 0, 0, 'F')
       doc.setFont('helvetica', 'bold')
@@ -102,6 +105,7 @@ export default function FechamentoDetailPage() {
       doc.setFontSize(9)
       doc.setTextColor('#F0D8D5')
       doc.text('ceramica artesanal', pageW / 2, 23, { align: 'center' })
+
       doc.setFillColor(BLUSH)
       doc.rect(0, 38, pageW, 18, 'F')
       doc.setFont('helvetica', 'bold')
@@ -112,7 +116,9 @@ export default function FechamentoDetailPage() {
       doc.setFontSize(9)
       doc.setTextColor(MUTED)
       doc.text(nome, pageW / 2, 53, { align: 'center' })
+
       let y = 68
+
       if (items.length > 0) {
         doc.setFont('helvetica', 'bold')
         doc.setFontSize(8)
@@ -149,6 +155,7 @@ export default function FechamentoDetailPage() {
         doc.text(formatCurrency(totalPecas), pageW - margin - 2, y + 5.5, { align: 'right' })
         y += 14
       }
+
       if (argilas.length > 0) {
         doc.setFont('helvetica', 'bold')
         doc.setFontSize(8)
@@ -185,6 +192,7 @@ export default function FechamentoDetailPage() {
         doc.text(formatCurrency(totalArgila), pageW - margin - 2, y + 5.5, { align: 'right' })
         y += 14
       }
+
       doc.setFillColor(MAUVE)
       doc.roundedRect(margin, y, pageW - margin * 2, 14, 3, 3, 'F')
       doc.setFont('helvetica', 'bold')
@@ -193,6 +201,7 @@ export default function FechamentoDetailPage() {
       doc.text('Total', margin + 6, y + 9.5)
       doc.text(formatCurrency(fechamento.total_value), pageW - margin - 6, y + 9.5, { align: 'right' })
       y += 22
+
       doc.setFillColor(BLUSH)
       doc.roundedRect(margin, y, pageW - margin * 2, 16, 3, 3, 'F')
       doc.setFont('helvetica', 'normal')
@@ -204,18 +213,22 @@ export default function FechamentoDetailPage() {
       doc.setTextColor(MAUVE_DARK)
       doc.text(PIX, pageW / 2, y + 13, { align: 'center' })
       y += 24
+
       doc.setFont('helvetica', 'normal')
       doc.setFontSize(7)
       doc.setTextColor(MUTED)
       doc.text('Atelie Malu Ribeiro - ceramica artesanal', pageW / 2, y + 6, { align: 'center' })
+
       const pdfBlob = doc.output('blob')
       const blobUrl = URL.createObjectURL(pdfBlob)
       window.open(blobUrl, '_blank')
+
       const msg = 'Ola ' + nome + '!\n\nSegue o fechamento do Atelie Malu Ribeiro referente a ' + fechamento.reference_month + '.\n\nO PDF foi gerado - por favor salve e compartilhe aqui!\n\nTotal: ' + formatCurrency(fechamento.total_value) + '\nPIX: ' + PIX
       const waUrl = phone
         ? 'https://wa.me/55' + phone + '?text=' + encodeURIComponent(msg)
         : 'https://wa.me/?text=' + encodeURIComponent(msg)
       setTimeout(() => window.open(waUrl, '_blank'), 800)
+
     } catch (err) {
       console.error('Erro ao gerar PDF:', err)
       alert('Nao foi possivel gerar o PDF. Tente novamente.')
@@ -239,6 +252,7 @@ export default function FechamentoDetailPage() {
           <h1 className="font-display text-2xl text-brand-text">{nome}</h1>
           <p className="text-sm text-brand-muted capitalize">{fechamento.reference_month}</p>
         </div>
+
         <div className={`rounded-xl px-4 py-3 flex items-center justify-between ${fechamento.status === 'paid' ? 'bg-status-paid-bg' : 'bg-status-open-bg'}`}>
           <p className={`text-sm font-medium ${fechamento.status === 'paid' ? 'text-status-paid-text' : 'text-status-open-text'}`}>
             {fechamento.status === 'paid' ? 'Pago' : 'Aguardando pagamento'}
@@ -247,6 +261,7 @@ export default function FechamentoDetailPage() {
             <p className="text-xs text-status-paid-text">{formatDate(fechamento.paid_at)}</p>
           )}
         </div>
+
         {items.length > 0 && (
           <div className="space-y-1">
             <p className="text-xs font-medium tracking-widest uppercase text-brand-muted px-1">Pecas</p>
@@ -263,6 +278,7 @@ export default function FechamentoDetailPage() {
             </div>
           </div>
         )}
+
         {argilas.length > 0 && (
           <div className="space-y-1">
             <p className="text-xs font-medium tracking-widest uppercase text-brand-muted px-1">Argila</p>
@@ -281,6 +297,7 @@ export default function FechamentoDetailPage() {
             </div>
           </div>
         )}
+
         <div className="bg-white rounded-xl shadow-card divide-y divide-brand-line">
           {totalPecas > 0 && (
             <div className="flex justify-between px-4 py-3">
@@ -299,10 +316,12 @@ export default function FechamentoDetailPage() {
             <p className="font-display text-xl text-brand-text">{formatCurrency(fechamento.total_value)}</p>
           </div>
         </div>
+
         <div className="bg-white rounded-xl shadow-card px-4 py-3 text-center">
           <p className="text-xs text-brand-muted mb-1">Chave PIX</p>
           <p className="text-sm font-medium text-brand-text">46.504.315/0001-77</p>
         </div>
+
         <div className="space-y-2">
           <button
             onClick={gerarPDFECompartilhar}

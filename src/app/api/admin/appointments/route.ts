@@ -1,13 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 
-export async function POST(request: NextRequest) {
-  const body = await request.json()
-  const supabase = createSupabaseClient(
+function getSupabase() {
+  return createSupabaseClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     { auth: { autoRefreshToken: false, persistSession: false } }
   )
+}
+
+export async function POST(request: NextRequest) {
+  const body = await request.json()
+  const supabase = getSupabase()
 
   // verifica vaga
   const { data: slot } = await supabase
@@ -27,12 +31,40 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Sem vagas no torno' }, { status: 400 })
   }
 
-  // verifica duplicata
-  const { data: existing } = await supabase.from('appointments').select('id')
-    .eq('slot_id', body.slot_id).eq('student_id', body.student_id).eq('status', 'confirmed').single()
-  if (existing) return NextResponse.json({ error: 'Já agendada' }, { status: 400 })
+  // ✅ FIX Bug 3: verifica se existe appointment cancelado para o mesmo slot+aluna
+  // Se sim, faz UPDATE para confirmed em vez de INSERT (evita unique constraint)
+  const { data: existing } = await supabase
+    .from('appointments')
+    .select('id, status')
+    .eq('slot_id', body.slot_id)
+    .eq('student_id', body.student_id)
+    .maybeSingle()
 
-  const { data, error } = await supabase.from('appointments').insert(body).select().single()
+  if (existing) {
+    if (existing.status === 'confirmed') {
+      return NextResponse.json({ error: 'Já agendada' }, { status: 400 })
+    }
+    // estava cancelado — reativa
+    const { data, error } = await supabase
+      .from('appointments')
+      .update({
+        status: 'confirmed',
+        modality: body.modality ?? 'manual',
+        cancelled_at: null,
+      })
+      .eq('id', existing.id)
+      .select()
+      .single()
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+    return NextResponse.json(data)
+  }
+
+  // não existe — INSERT normal
+  const { data, error } = await supabase
+    .from('appointments')
+    .insert(body)
+    .select()
+    .single()
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
   return NextResponse.json(data)
 }
@@ -40,11 +72,7 @@ export async function POST(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   const body = await request.json()
   const { id, ...update } = body
-  const supabase = createSupabaseClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { autoRefreshToken: false, persistSession: false } }
-  )
+  const supabase = getSupabase()
   const { error } = await supabase.from('appointments').update(update).eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
   return NextResponse.json({ ok: true })

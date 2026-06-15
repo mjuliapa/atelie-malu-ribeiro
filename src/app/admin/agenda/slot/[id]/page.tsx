@@ -7,13 +7,18 @@ import { parseISO, isPast } from 'date-fns'
 import { useParams, useRouter } from 'next/navigation'
 import { AttendanceModal } from '@/components/admin/AttendanceModal'
 
+type AttendanceRecord = {
+  id: string
+  status: string
+}
+
 type Appointment = {
   id: string
   status: string
   student_id: string
   modality: string
   profiles: { full_name: string } | null
-  attendance: { id: string; status: string } | null
+  attendance: AttendanceRecord[] | AttendanceRecord | null
 }
 
 type Slot = {
@@ -35,15 +40,22 @@ export default function SlotPage() {
   const [blockReason, setBlockReason] = useState('')
   const [saving, setSaving] = useState(false)
   const [showAttendance, setShowAttendance] = useState(false)
+  const [error, setError] = useState(false)
 
   async function load() {
-    const res = await fetch(`/api/admin/slots?id=${id}`)
-    const data = await res.json()
-    if (data) {
+    setError(false)
+    try {
+      const res = await fetch(`/api/admin/slots?id=${id}`)
+      if (!res.ok) { setError(true); setLoading(false); return }
+      const data = await res.json()
+      if (!data || data.error) { setError(true); setLoading(false); return }
       setSlot(data as Slot)
       setBlockReason(data.block_reason ?? '')
+    } catch {
+      setError(true)
+    } finally {
+      setLoading(false)
     }
-    setLoading(false)
   }
 
   useEffect(() => { load() }, [id])
@@ -69,8 +81,15 @@ export default function SlotPage() {
     router.back()
   }
 
+  // normaliza attendance — pode vir como array ou objeto dependendo do Supabase
+  function getAttendance(a: Appointment): AttendanceRecord | null {
+    if (!a.attendance) return null
+    if (Array.isArray(a.attendance)) return a.attendance[0] ?? null
+    return a.attendance
+  }
+
   if (loading) return <div className="p-8 text-center text-brand-muted">Carregando...</div>
-  if (!slot) return <div className="p-8 text-center text-brand-muted">Aula não encontrada.</div>
+  if (error || !slot) return <div className="p-8 text-center text-brand-muted">Aula não encontrada.</div>
 
   const confirmed = slot.appointments?.filter(a => a.status === 'confirmed') ?? []
   const isPastSlot = isPast(parseISO(slot.start_time))
@@ -105,22 +124,23 @@ export default function SlotPage() {
           ) : (
             <div className="bg-white rounded-xl shadow-card divide-y divide-brand-line">
               {confirmed.map(a => {
-                const att = Array.isArray(a.attendance) ? a.attendance[0] : a.attendance
+                const att = getAttendance(a)
                 const attended = att?.status === 'present'
                 const absent = att?.status === 'absent'
                 return (
                   <div key={a.id} className="flex items-center gap-3 px-4 py-3">
                     <div className="w-8 h-8 rounded-full bg-brand-blush flex items-center justify-center flex-shrink-0">
                       <span className="text-sm font-medium text-brand-mauve">
-                        {(a.profiles as any)?.full_name?.charAt(0).toUpperCase() ?? '?'}
+                        {a.profiles?.full_name?.charAt(0).toUpperCase() ?? '?'}
                       </span>
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-brand-text">{(a.profiles as any)?.full_name ?? 'Aluna'}</p>
+                      <p className="text-sm font-medium text-brand-text">{a.profiles?.full_name ?? 'Aluna'}</p>
                       <p className="text-xs text-brand-muted">{a.modality === 'torno' ? '🏺 Torno' : '✋ Manual'}</p>
                     </div>
                     <span className={cn('text-xs px-2 py-1 rounded-full font-medium',
-                      att ? (attended ? 'bg-status-paid-bg text-status-paid-text' : 'bg-status-open-bg text-status-open-text')
+                      att
+                        ? (attended ? 'bg-status-paid-bg text-status-paid-text' : 'bg-status-open-bg text-status-open-text')
                         : 'bg-brand-cream text-brand-muted')}>
                       {att ? (attended ? '✓ Presente' : absent ? 'Falta' : 'Justificada') : 'Sem registro'}
                     </span>
@@ -170,9 +190,11 @@ export default function SlotPage() {
       </div>
 
       {showAttendance && (
-        <AttendanceModal slot={slot as any}
+        <AttendanceModal
+          slot={slot as any}
           onClose={() => setShowAttendance(false)}
-          onSaved={() => { setShowAttendance(false); load() }} />
+          onSaved={() => { setShowAttendance(false); load() }}
+        />
       )}
     </>
   )
