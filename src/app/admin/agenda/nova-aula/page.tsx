@@ -6,6 +6,14 @@ import { AdminNavHeader } from '@/components/admin/AdminNav'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
 
+const HORARIOS = [
+  '07:00','07:30','08:00','08:30','09:00','09:30',
+  '10:00','10:30','11:00','11:30','12:00','12:30',
+  '13:00','13:30','14:00','14:30','15:00','15:30',
+  '16:00','16:30','17:00','17:30','18:00','18:30',
+  '19:00','19:30','20:00',
+]
+
 const FIXED_DURATION = 150
 
 function NovaAulaContent() {
@@ -78,8 +86,12 @@ function NovaAulaContent() {
 
         <div>
           <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-1.5">Início</label>
-          <input type="time" required value={startTime} onChange={e => setStartTime(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl border border-brand-line bg-white text-brand-text focus:outline-none focus:border-brand-mauve text-base" />
+          <select value={startTime} onChange={e => setStartTime(e.target.value)}
+            className="w-full px-4 py-3 rounded-xl border border-brand-line bg-white text-brand-text focus:outline-none focus:border-brand-mauve text-base">
+            {HORARIOS.map(h => (
+              <option key={h} value={h}>{h}</option>
+            ))}
+          </select>
         </div>
 
         <div>
