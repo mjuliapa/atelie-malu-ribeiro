@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     // busca profile separado
     const { data: profile } = await supabase
       .from('profiles')
-      .select('full_name, phone')
+      .select('full_name, phone, package_type')
       .eq('id', fechamento.student_id)
       .single()
 

@@ -13,7 +13,7 @@ type Fechamento = {
   created_at: string
   paid_at: string | null
   student_id: string
-  profiles: { full_name: string; phone: string | null }
+  profiles: { full_name: string; phone: string | null; package_type: string | null }
 }
 
 type Item = {
@@ -90,29 +90,67 @@ export default function FechamentoDetailPage() {
       const phone = fechamento.profiles?.phone?.replace(/\D/g, '')
       const totalPecas = items.reduce((sum, i) => sum + i.value_snapshot, 0)
       const totalArgila = argilas.reduce((sum, a) => sum + a.total_value, 0)
+      const packageValue = fechamento.total_value - totalPecas - totalArgila
+      const packageLabel = fechamento.profiles?.package_type === 'torno' ? 'Pacote Torno' : 'Pacote Manual'
       const pageW = 210
       const margin = 20
+
+      const logoBase64 = await fetch('/logo-mauve.png')
+        .then(r => r.blob())
+        .then(blob => new Promise<string>((resolve) => {
+          const reader = new FileReader()
+          reader.onload = () => resolve((reader.result as string).split(',')[1])
+          reader.readAsDataURL(blob)
+        }))
+
       doc.setFillColor(MAUVE)
-      doc.roundedRect(0, 0, pageW, 38, 0, 0, 'F')
-      doc.setFont('helvetica', 'bold')
-      doc.setFontSize(18)
-      doc.setTextColor(WHITE)
-      doc.text('Atelie Malu Ribeiro', pageW / 2, 16, { align: 'center' })
-      doc.setFont('helvetica', 'normal')
-      doc.setFontSize(9)
-      doc.setTextColor('#F0D8D5')
-      doc.text('ceramica artesanal', pageW / 2, 23, { align: 'center' })
+      doc.roundedRect(0, 0, pageW, 42, 0, 0, 'F')
+      doc.addImage(logoBase64, 'PNG', pageW / 2 - 30, 6, 60, 28)
+
       doc.setFillColor(BLUSH)
-      doc.rect(0, 38, pageW, 18, 'F')
+      doc.rect(0, 42, pageW, 18, 'F')
       doc.setFont('helvetica', 'bold')
       doc.setFontSize(11)
       doc.setTextColor(MAUVE_DARK)
-      doc.text('Fechamento - ' + fechamento.reference_month, pageW / 2, 47, { align: 'center' })
+      doc.text('Fechamento - ' + fechamento.reference_month, pageW / 2, 51, { align: 'center' })
       doc.setFont('helvetica', 'normal')
       doc.setFontSize(9)
       doc.setTextColor(MUTED)
-      doc.text(nome, pageW / 2, 53, { align: 'center' })
-      let y = 68
+      doc.text(nome, pageW / 2, 57, { align: 'center' })
+
+      let y = 72
+
+      if (packageValue > 0) {
+        doc.setFont('helvetica', 'bold')
+        doc.setFontSize(8)
+        doc.setTextColor(MUTED)
+        doc.text('PACOTE', margin, y)
+        y += 5
+        doc.setFillColor(WHITE)
+        doc.rect(margin, y, pageW - margin * 2, 10, 'F')
+        doc.setDrawColor('#E8DADA')
+        doc.setLineWidth(0.3)
+        doc.line(margin, y + 10, pageW - margin, y + 10)
+        doc.setFont('helvetica', 'normal')
+        doc.setFontSize(9)
+        doc.setTextColor(TEXT)
+        doc.text(packageLabel, margin + 2, y + 6.5)
+        doc.setFont('helvetica', 'bold')
+        doc.setTextColor(TEXT)
+        doc.text(formatCurrency(packageValue), pageW - margin - 2, y + 6.5, { align: 'right' })
+        y += 11
+        doc.setFillColor(BLUSH)
+        doc.rect(margin, y, pageW - margin * 2, 8, 'F')
+        doc.setFont('helvetica', 'normal')
+        doc.setFontSize(8)
+        doc.setTextColor(MUTED)
+        doc.text('Subtotal pacote', margin + 2, y + 5.5)
+        doc.setFont('helvetica', 'bold')
+        doc.setTextColor(MAUVE_DARK)
+        doc.text(formatCurrency(packageValue), pageW - margin - 2, y + 5.5, { align: 'right' })
+        y += 14
+      }
+
       if (items.length > 0) {
         doc.setFont('helvetica', 'bold')
         doc.setFontSize(8)
@@ -149,6 +187,7 @@ export default function FechamentoDetailPage() {
         doc.text(formatCurrency(totalPecas), pageW - margin - 2, y + 5.5, { align: 'right' })
         y += 14
       }
+
       if (argilas.length > 0) {
         doc.setFont('helvetica', 'bold')
         doc.setFontSize(8)
@@ -185,6 +224,7 @@ export default function FechamentoDetailPage() {
         doc.text(formatCurrency(totalArgila), pageW - margin - 2, y + 5.5, { align: 'right' })
         y += 14
       }
+
       doc.setFillColor(MAUVE)
       doc.roundedRect(margin, y, pageW - margin * 2, 14, 3, 3, 'F')
       doc.setFont('helvetica', 'bold')
@@ -193,6 +233,7 @@ export default function FechamentoDetailPage() {
       doc.text('Total', margin + 6, y + 9.5)
       doc.text(formatCurrency(fechamento.total_value), pageW - margin - 6, y + 9.5, { align: 'right' })
       y += 22
+
       doc.setFillColor(BLUSH)
       doc.roundedRect(margin, y, pageW - margin * 2, 16, 3, 3, 'F')
       doc.setFont('helvetica', 'normal')
@@ -204,18 +245,22 @@ export default function FechamentoDetailPage() {
       doc.setTextColor(MAUVE_DARK)
       doc.text(PIX, pageW / 2, y + 13, { align: 'center' })
       y += 24
+
       doc.setFont('helvetica', 'normal')
       doc.setFontSize(7)
       doc.setTextColor(MUTED)
       doc.text('Atelie Malu Ribeiro - ceramica artesanal', pageW / 2, y + 6, { align: 'center' })
+
       const pdfBlob = doc.output('blob')
       const blobUrl = URL.createObjectURL(pdfBlob)
       window.open(blobUrl, '_blank')
+
       const msg = 'Ola ' + nome + '!\n\nSegue o fechamento do Atelie Malu Ribeiro referente a ' + fechamento.reference_month + '.\n\nO PDF foi gerado - por favor salve e compartilhe aqui!\n\nTotal: ' + formatCurrency(fechamento.total_value) + '\nPIX: ' + PIX
       const waUrl = phone
         ? 'https://wa.me/55' + phone + '?text=' + encodeURIComponent(msg)
         : 'https://wa.me/?text=' + encodeURIComponent(msg)
       setTimeout(() => window.open(waUrl, '_blank'), 800)
+
     } catch (err) {
       console.error('Erro ao gerar PDF:', err)
       alert('Nao foi possivel gerar o PDF. Tente novamente.')
