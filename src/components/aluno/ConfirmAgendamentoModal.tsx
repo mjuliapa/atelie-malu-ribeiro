@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { ScheduleSlot } from '@/types'
 import { formatSlotTime, formatDate, cn } from '@/lib/utils'
 
@@ -20,45 +19,25 @@ export function ConfirmAgendamentoModal({ slot, userId, onClose, onConfirmed }: 
   async function handleConfirm() {
     setError(null)
     setLoading(true)
-    const supabase = createClient()
 
-    const { data: currentSlot } = await supabase
-      .from('schedule_slots')
-      .select(`appointments(id, status, modality)`)
-      .eq('id', slot.id).single()
-
-    const confirmed = currentSlot?.appointments?.filter((a: any) => a.status === 'confirmed') ?? []
-    if (confirmed.length >= slot.max_students) {
-      setError('Esta aula acabou de lotar.')
-      setLoading(false)
-      return
-    }
-
-    if (modality === 'torno') {
-      const tornoCount = confirmed.filter((a: any) => a.modality === 'torno').length
-      const tornoSpots = slot.torno_spots ?? 1
-      if (tornoCount >= tornoSpots) {
-        setError('Não há mais vagas no torno para esta aula.')
-        setLoading(false)
-        return
-      }
-    }
-
-    const { data: existing } = await supabase
-      .from('appointments').select('id')
-      .eq('slot_id', slot.id).eq('student_id', userId).eq('status', 'confirmed').single()
-
-    if (existing) { setError('Você já está agendada nesta aula.'); setLoading(false); return }
-
-    const { error } = await supabase.from('appointments').insert({
-      slot_id: slot.id,
-      student_id: userId,
-      status: 'confirmed',
-      modality,
+    const res = await fetch('/api/admin/appointments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        slot_id: slot.id,
+        student_id: userId,
+        status: 'confirmed',
+        modality,
+      }),
     })
 
     setLoading(false)
-    if (error) { setError('Não foi possível confirmar. Tente novamente.'); return }
+
+    if (!res.ok) {
+      const err = await res.json()
+      setError(err.error ?? 'Não foi possível confirmar. Tente novamente.')
+      return
+    }
     onConfirmed()
   }
 

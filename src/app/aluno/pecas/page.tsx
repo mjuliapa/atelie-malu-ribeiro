@@ -21,21 +21,17 @@ export default function AlunoPecasPage() {
 
   useEffect(() => {
     async function load() {
+      const supabase = createClient()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      const { data } = await supabase
-        .from('pieces')
-        .select('id, name, calculated_value, status, piece_date, firing_types(name)')
-        .eq('student_id', user.id)
-        .order('piece_date', { ascending: false })
-
-      setPecas((data as unknown as Peca[]) ?? [])
+      const res = await fetch(`/api/admin/pecas?student_id=${user.id}`)
+      const data = await res.json()
+      setPecas(data ?? [])
       setLoading(false)
     }
     load()
   }, [])
-
   const abertas = pecas.filter(p => p.status === 'open')
   const historico = pecas.filter(p => p.status !== 'open')
   const totalAberto = abertas.reduce((sum, p) => sum + p.calculated_value, 0)

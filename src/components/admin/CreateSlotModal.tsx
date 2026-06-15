@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { format } from 'date-fns'
 
 interface CreateSlotModalProps {
@@ -35,22 +34,26 @@ export function CreateSlotModal({ preselectedDate, onClose, onCreated }: CreateS
     setError(null)
     setLoading(true)
 
-    const supabase = createClient()
     const startISO = `${date}T${startTime}:00`
     const endISO = `${date}T${calculateEndTime()}:00`
 
-    const { error } = await supabase.from('schedule_slots').insert({
-      start_time: startISO,
-      end_time: endISO,
-      max_students: maxStudents,
-      torno_spots: tornoSpots,
-      is_blocked: false,
+    const res = await fetch('/api/admin/slots', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        start_time: startISO,
+        end_time: endISO,
+        max_students: maxStudents,
+        torno_spots: tornoSpots,
+        is_blocked: false,
+      }),
     })
 
     setLoading(false)
 
-    if (error) {
-      if (error.message.includes('overlap') || error.message.includes('unique')) {
+    if (!res.ok) {
+      const err = await res.json()
+      if (err.error?.includes('overlap') || err.error?.includes('unique')) {
         setError('Já existe uma aula neste horário.')
       } else {
         setError('Não foi possível criar a aula. Tente novamente.')
