@@ -44,13 +44,27 @@ export async function GET(request: NextRequest) {
     { auth: { autoRefreshToken: false, persistSession: false } }
   )
 
-  const { data: profile } = await adminClient
+  let { data: profile } = await adminClient
     .from('profiles')
-    .select('role')
+    .select('role, onboarding_completed')
     .eq('id', data.user.id)
     .single()
 
-  const dest = profile?.role === 'admin' ? '/admin' : '/aluno/agenda'
+  if (!profile) {
+    await adminClient.from('profiles').insert({
+      id: data.user.id,
+      role: 'student',
+      status: 'active',
+      onboarding_completed: false,
+    })
+    profile = { role: 'student', onboarding_completed: false }
+  }
+
+  const dest = profile.role === 'admin'
+    ? '/admin'
+    : profile.onboarding_completed
+      ? '/aluno/agenda'
+      : '/onboarding'
 
   const finalResponse = NextResponse.redirect(new URL(dest, request.url))
   tempResponse.cookies.getAll().forEach(({ name, value, ...options }) => {

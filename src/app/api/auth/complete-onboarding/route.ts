@@ -31,8 +31,7 @@ export async function POST(request: NextRequest) {
 
     const { error } = await admin
       .from('profiles')
-      .update({ full_name: fullName, phone, onboarding_completed: true })
-      .eq('id', user.id)
+      .upsert({ id: user.id, full_name: fullName, phone, onboarding_completed: true, role: 'student', status: 'active' })
 
     if (error) {
       return NextResponse.json({ error: 'Erro ao salvar.' }, { status: 500 })

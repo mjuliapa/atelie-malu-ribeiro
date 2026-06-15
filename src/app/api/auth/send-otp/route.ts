@@ -17,13 +17,20 @@ export async function POST(request: NextRequest) {
     const userExists = users?.users?.some((u) => u.email === email)
 
     if (!userExists) {
-      const { error: createError } = await admin.auth.admin.createUser({
+      const { data: newUser, error: createError } = await admin.auth.admin.createUser({
         email,
         email_confirm: true,
       })
-      if (createError) {
+      if (createError || !newUser?.user) {
         return NextResponse.json({ error: 'Não foi possível criar o acesso.' }, { status: 500 })
       }
+      // cria perfil automaticamente
+      await admin.from('profiles').insert({
+        id: newUser.user.id,
+        role: 'student',
+        status: 'active',
+        onboarding_completed: false,
+      })
     }
 
     const { data, error } = await admin.auth.admin.generateLink({ type: 'magiclink', email })
