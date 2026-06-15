@@ -75,36 +75,23 @@ function NovoFechamentoContent() {
   async function handleSubmit() {
     if (!studentId) return
     setSaving(true)
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
 
-    const { data: fechamento, error } = await supabase.from('monthly_closings').insert({
-      student_id: studentId,
-      reference_month: refMonth,
-      total_value: totalGeral,
-      status: 'awaiting_payment',
-      created_by: user.id,
-    }).select().single()
-
-    if (error || !fechamento) { setSaving(false); return }
-
-    if (pecasAbertas.length) {
-      await supabase.from('closing_items').insert(
-        pecasAbertas.map(p => ({ closing_id: fechamento.id, piece_id: p.id, value_snapshot: p.calculated_value }))
-      )
-      await supabase.from('pieces').update({ status: 'closed' }).in('id', pecasAbertas.map(p => p.id))
-    }
-
-    if (argilasAbertas.length) {
-      await supabase.from('clay_closing_items').insert(
-        argilasAbertas.map(a => ({ closing_id: fechamento.id, clay_sale_id: a.id, value_snapshot: a.total_value }))
-      )
-      await supabase.from('clay_sales').update({ status: 'closed' }).in('id', argilasAbertas.map(a => a.id))
-    }
+    const res = await fetch('/api/admin/fechamentos/criar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        student_id: studentId,
+        reference_month: refMonth,
+        total_value: totalGeral,
+        pecas: pecasAbertas.map(p => ({ id: p.id, value_snapshot: p.calculated_value })),
+        argilas: argilasAbertas.map(a => ({ id: a.id, value_snapshot: a.total_value })),
+      }),
+    })
 
     setSaving(false)
-    router.push(`/admin/fechamentos/${fechamento.id}`)
+    if (!res.ok) return
+    const data = await res.json()
+    router.push(`/admin/fechamentos/${data.id}`)
   }
 
   return (
