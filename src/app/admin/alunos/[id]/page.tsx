@@ -25,15 +25,25 @@ export default async function AlunaDetailPage({ params }: { params: Promise<{ id
     admin.from('package_charges').select('*').eq('student_id', id).order('created_at', { ascending: false }),
   ])
 
-  const pecasAbertas = pecas?.filter(p => p.status === 'open') ?? []
-  const argilasAbertas = argilas?.filter(a => a.status === 'open') ?? []
-  const totalPecasAberto = pecasAbertas.reduce((sum, p) => sum + p.calculated_value, 0)
-  const totalArgilaAberto = argilasAbertas.reduce((sum, a) => sum + a.total_value, 0)
-  const totalAberto = totalPecasAberto + totalArgilaAberto
-
   const credits = aluna.credits ?? 0
   const packageType = aluna.package_type ?? 'manual'
   const packageValue = packageType === 'torno' ? 460 : 420
+
+  // Totais por status
+  const totalPecasAberto = (pecas ?? []).filter(p => p.status === 'open').reduce((s, p) => s + p.calculated_value, 0)
+  const totalPecasFechado = (pecas ?? []).filter(p => p.status === 'closed').reduce((s, p) => s + p.calculated_value, 0)
+  const totalPecasPago = (pecas ?? []).filter(p => p.status === 'paid').reduce((s, p) => s + p.calculated_value, 0)
+
+  const totalArgilaAberto = (argilas ?? []).filter(a => a.status === 'open').reduce((s, a) => s + a.total_value, 0)
+  const totalArgilaFechado = (argilas ?? []).filter(a => a.status === 'closed').reduce((s, a) => s + a.total_value, 0)
+  const totalArgilaPago = (argilas ?? []).filter(a => a.status === 'paid').reduce((s, a) => s + a.total_value, 0)
+
+  const totalPacoteAberto = (packageCharges ?? []).filter(c => c.status === 'awaiting_payment').reduce((s, c) => s + c.value, 0)
+  const totalPacotePago = (packageCharges ?? []).filter(c => c.status === 'paid').reduce((s, c) => s + c.value, 0)
+
+  const totalAberto = totalPecasAberto + totalArgilaAberto + totalPacoteAberto
+  const totalFechado = totalPecasFechado + totalArgilaFechado
+  const totalPago = totalPecasPago + totalArgilaPago + totalPacotePago
 
   const statusLabel: Record<string, string> = { open: 'Em aberto', closed: 'Fechada', paid: 'Paga', cancelled: 'Cancelada' }
   const statusColor: Record<string, string> = {
@@ -58,14 +68,14 @@ export default async function AlunaDetailPage({ params }: { params: Promise<{ id
           </div>
         </div>
 
-        {/* Créditos de aula */}
+        {/* Creditos */}
         <div className={`rounded-xl p-4 flex items-center justify-between ${credits > 0 ? 'bg-status-paid-bg' : 'bg-status-open-bg'}`}>
           <div>
             <p className={`text-xs mb-0.5 ${credits > 0 ? 'text-status-paid-text' : 'text-status-open-text'}`}>
-              Créditos de aula · pacote {packageType}
+              Creditos de aula · pacote {packageType}
             </p>
             <p className={`font-display text-2xl ${credits > 0 ? 'text-status-paid-text' : 'text-status-open-text'}`}>
-              {credits} crédito{credits !== 1 ? 's' : ''}
+              {credits} credito{credits !== 1 ? 's' : ''}
             </p>
           </div>
           <Link href={`/admin/alunos/${id}/creditos`}
@@ -74,55 +84,51 @@ export default async function AlunaDetailPage({ params }: { params: Promise<{ id
           </Link>
         </div>
 
-        {/* Alerta sem créditos */}
         {credits === 0 && (
           <Link href={`/admin/fechamentos/pacote?aluna=${id}&tipo=${packageType}`}
             className="block bg-brand-blush rounded-xl p-4 text-center">
-            <p className="text-sm font-medium text-brand-mauve">+ Gerar cobrança de pacote</p>
+            <p className="text-sm font-medium text-brand-mauve">+ Gerar cobranca de pacote</p>
             <p className="text-xs text-brand-mauve/70">{formatCurrency(packageValue)} · 4 aulas</p>
           </Link>
         )}
 
-        {/* Indicadores */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-brand-blush rounded-xl p-4">
-            <p className="text-xs text-brand-mauve mb-1">Em aberto</p>
-            <p className="font-display text-2xl text-brand-mauve">{formatCurrency(totalAberto)}</p>
-          </div>
-          <div className="bg-white rounded-xl p-4 shadow-card">
-            <p className="text-xs text-brand-muted mb-1">Peças</p>
-            <p className="font-display text-2xl text-brand-text">{pecas?.length ?? 0}</p>
+        {/* Resumo financeiro */}
+        <div className="bg-white rounded-xl shadow-card p-4 space-y-3">
+          <p className="text-xs font-medium tracking-widest uppercase text-brand-muted">Resumo financeiro</p>
+          <div className="grid grid-cols-3 gap-2">
+            <div>
+              <p className="text-[10px] text-brand-muted mb-0.5">Em aberto</p>
+              <p className="font-display text-sm text-status-open-text">{formatCurrency(totalAberto)}</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-brand-muted mb-0.5">Fechado</p>
+              <p className="font-display text-sm text-status-closed-text">{formatCurrency(totalFechado)}</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-brand-muted mb-0.5">Pago</p>
+              <p className="font-display text-sm text-status-paid-text">{formatCurrency(totalPago)}</p>
+            </div>
           </div>
         </div>
 
-        {argilasAbertas.length > 0 && (
-          <div className="bg-white rounded-xl p-4 shadow-card flex justify-between items-center">
-            <div>
-              <p className="text-xs text-brand-muted mb-0.5">Argila em aberto</p>
-              <p className="font-display text-xl text-brand-text">{formatCurrency(totalArgilaAberto)}</p>
-            </div>
-            <p className="text-xs text-brand-mauve">{argilasAbertas.length} venda{argilasAbertas.length !== 1 ? 's' : ''}</p>
-          </div>
-        )}
-
-        {/* Ações */}
+        {/* Acoes */}
         <div className="grid grid-cols-2 gap-2">
           <Link href={`/admin/pecas/nova?aluna=${id}`}
             className="flex items-center justify-center gap-2 bg-brand-ink text-brand-cream px-4 py-3 rounded-xl text-sm font-medium">
-            + Nova peça
+            + Nova peca
           </Link>
           <Link href={`/admin/fechamentos/novo?aluna=${id}`}
             className="flex items-center justify-center gap-2 bg-white text-brand-text border border-brand-line px-4 py-3 rounded-xl text-sm font-medium">
-            📋 Fechamento
+            Fechamento
           </Link>
         </div>
 
-        {/* Peças */}
+        {/* Pecas */}
         <div className="space-y-2">
-          <h2 className="font-display text-base text-brand-text">Peças</h2>
+          <h2 className="font-display text-base text-brand-text">Pecas</h2>
           {!pecas?.length ? (
             <div className="bg-white rounded-xl p-6 text-center shadow-card">
-              <p className="text-sm text-brand-muted">Nenhuma peça cadastrada.</p>
+              <p className="text-sm text-brand-muted">Nenhuma peca cadastrada.</p>
             </div>
           ) : (
             <div className="bg-white rounded-xl shadow-card divide-y divide-brand-line">
@@ -167,7 +173,7 @@ export default async function AlunaDetailPage({ params }: { params: Promise<{ id
           </div>
         )}
 
-        {/* Cobranças de pacote */}
+        {/* Pacotes */}
         {packageCharges && packageCharges.length > 0 && (
           <div className="space-y-2">
             <h2 className="font-display text-base text-brand-text">Pacotes</h2>
@@ -180,9 +186,7 @@ export default async function AlunaDetailPage({ params }: { params: Promise<{ id
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-medium text-brand-text">{formatCurrency(c.value)}</p>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
-                      c.status === 'paid' ? 'bg-status-paid-bg text-status-paid-text' : 'bg-status-open-bg text-status-open-text'
-                    }`}>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${c.status === 'paid' ? 'bg-status-paid-bg text-status-paid-text' : 'bg-status-open-bg text-status-open-text'}`}>
                       {c.status === 'paid' ? 'Pago' : 'Pendente'}
                     </span>
                   </div>
@@ -201,14 +205,12 @@ export default async function AlunaDetailPage({ params }: { params: Promise<{ id
                 <Link key={f.id} href={`/admin/fechamentos/${f.id}`}
                   className="flex items-center gap-3 px-4 py-3 hover:bg-brand-cream transition-colors">
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-brand-text">{f.reference_month}</p>
+                    <p className="text-sm font-medium text-brand-text capitalize">{f.reference_month}</p>
                     <p className="text-xs text-brand-muted">{formatDate(f.created_at)}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-medium text-brand-text">{formatCurrency(f.total_value)}</p>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
-                      f.status === 'paid' ? 'bg-status-paid-bg text-status-paid-text' : 'bg-status-open-bg text-status-open-text'
-                    }`}>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${f.status === 'paid' ? 'bg-status-paid-bg text-status-paid-text' : 'bg-status-open-bg text-status-open-text'}`}>
                       {f.status === 'paid' ? 'Pago' : 'Pendente'}
                     </span>
                   </div>
