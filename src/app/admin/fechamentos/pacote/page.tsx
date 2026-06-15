@@ -15,16 +15,20 @@ function PacoteContent() {
   const tipoParam = (searchParams.get('tipo') ?? 'manual') as 'manual' | 'torno'
 
   const [alunaName, setAlunaName] = useState('')
+  const [students, setStudents] = useState<{id: string, full_name: string}[]>([])
+  const [selectedAlunaId, setSelectedAlunaId] = useState(alunaId)
   const [tipo, setTipo] = useState<'manual' | 'torno'>(tipoParam)
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    if (!alunaId) return
     fetch('/api/admin/form-data')
       .then(r => r.json())
       .then(({ students }) => {
-        const aluna = students.find((s: any) => s.id === alunaId)
-        if (aluna) setAlunaName(aluna.full_name)
+        setStudents(students)
+        if (alunaId) {
+          const aluna = students.find((s: any) => s.id === alunaId)
+          if (aluna) setAlunaName(aluna.full_name)
+        }
       })
   }, [alunaId])
 

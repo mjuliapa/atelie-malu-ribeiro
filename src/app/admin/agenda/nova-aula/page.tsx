@@ -33,8 +33,8 @@ function NovaAulaContent() {
     setError(null)
     setLoading(true)
 
-    const startISO = `${date}T${startTime}:00`
-    const endISO = `${date}T${calculateEndTime()}:00`
+    const startISO = `${date}T${startTime}:00-03:00`
+    const endISO = `${date}T${calculateEndTime()}:00-03:00`
 
     const res = await fetch('/api/admin/slots', {
       method: 'POST',

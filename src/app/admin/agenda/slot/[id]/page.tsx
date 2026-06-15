@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { AdminNavHeader } from '@/components/admin/AdminNav'
 import { formatSlotTime, formatDate, cn } from '@/lib/utils'
-import { parseISO, isPast } from 'date-fns'
+import { parseISO, isPast, isToday } from 'date-fns'
 import { useParams, useRouter } from 'next/navigation'
 import { AttendanceModal } from '@/components/admin/AttendanceModal'
 
@@ -92,7 +92,7 @@ export default function SlotPage() {
   if (error || !slot) return <div className="p-8 text-center text-brand-muted">Aula não encontrada.</div>
 
   const confirmed = slot.appointments?.filter(a => a.status === 'confirmed') ?? []
-  const isPastSlot = isPast(parseISO(slot.start_time))
+  const isPastSlot = isPast(parseISO(slot.start_time)) || isToday(parseISO(slot.start_time))
 
   return (
     <>
