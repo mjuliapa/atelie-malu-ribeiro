@@ -9,10 +9,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 type Student = { id: string; full_name: string }
 type Peca = { id: string; name: string; calculated_value: number; piece_date: string }
 type Argila = { id: string; clay_types: { name: string } | null; quantity: number; unit_price: number; total_value: number; sale_date: string }
-type Aula = { id: string; slot_id: string; modality: string; schedule_slots: { start_time: string } | null }
-
-const PRECO_MANUAL = 420
-const PRECO_TORNO = 460
+type PackageCharge = { id: string; package_type: string; credits: number; value: number }
 
 function NovoFechamentoContent() {
   const router = useRouter()
@@ -23,7 +20,7 @@ function NovoFechamentoContent() {
   const [studentId, setStudentId] = useState(alunaParam ?? '')
   const [pecasAbertas, setPecasAbertas] = useState<Peca[]>([])
   const [argilasAbertas, setArgilasAbertas] = useState<Argila[]>([])
-  const [aulasDoMes, setAulasDoMes] = useState<Aula[]>([])
+  const [pacotesPendentes, setPacotesPendentes] = useState<PackageCharge[]>([])
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
 
@@ -37,44 +34,36 @@ function NovoFechamentoContent() {
     if (!studentId) {
       setPecasAbertas([])
       setArgilasAbertas([])
-      setAulasDoMes([])
+      setPacotesPendentes([])
       return
     }
     setLoading(true)
-    const supabase = createClient()
-
-    const now = new Date()
-    const mesInicio = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
-    const mesFim = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).toISOString()
 
     Promise.all([
       fetch(`/api/admin/pecas?student_id=${studentId}&status=open`).then(r => r.json()),
       fetch(`/api/admin/argila?student_id=${studentId}&status=open`).then(r => r.json()),
-      supabase.from('appointments')
-        .select('id, slot_id, modality, schedule_slots(start_time)')
-        .eq('student_id', studentId)
-        .eq('status', 'confirmed')
-        .gte('schedule_slots.start_time', mesInicio)
-        .lte('schedule_slots.start_time', mesFim),
-    ]).then(([pecas, argilas, { data: aulas }]) => {
-      setPecasAbertas(pecas as unknown as Peca[])
-      setArgilasAbertas(argilas as unknown as Argila[])
-      setAulasDoMes((aulas ?? []) as unknown as Aula[])
+      fetch(`/api/admin/package-charges?student_id=${studentId}&status=awaiting_payment`).then(r => r.json()),
+    ]).then(([pecas, argilas, pacotes]) => {
+      setPecasAbertas(pecas as Peca[])
+      setArgilasAbertas(argilas as Argila[])
+      setPacotesPendentes(Array.isArray(pacotes) ? pacotes as PackageCharge[] : [])
       setLoading(false)
     })
   }, [studentId])
 
   const totalPecas = pecasAbertas.reduce((sum, p) => sum + p.calculated_value, 0)
   const totalArgila = argilasAbertas.reduce((sum, a) => sum + a.total_value, 0)
-  const temTorno = aulasDoMes.some(a => a.modality === 'torno')
-  const valorPacote = aulasDoMes.length > 0 ? (temTorno ? PRECO_TORNO : PRECO_MANUAL) : 0
-  const totalGeral = totalPecas + totalArgila + valorPacote
+  const totalPacotes = pacotesPendentes.reduce((sum, p) => sum + p.value, 0)
+  const totalGeral = totalPecas + totalArgila + totalPacotes
 
   const refMonth = new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
 
   async function handleSubmit() {
     if (!studentId) return
     setSaving(true)
+
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
 
     const res = await fetch('/api/admin/fechamentos/criar', {
       method: 'POST',
@@ -83,13 +72,19 @@ function NovoFechamentoContent() {
         student_id: studentId,
         reference_month: refMonth,
         total_value: totalGeral,
+        created_by: user?.id,
         pecas: pecasAbertas.map(p => ({ id: p.id, value_snapshot: p.calculated_value })),
         argilas: argilasAbertas.map(a => ({ id: a.id, value_snapshot: a.total_value })),
+        pacotes: pacotesPendentes.map(p => ({ id: p.id, value_snapshot: p.value })),
       }),
     })
 
     setSaving(false)
-    if (!res.ok) return
+    if (!res.ok) {
+      const err = await res.json()
+      console.error('Erro ao criar fechamento:', err)
+      return
+    }
     const data = await res.json()
     router.push(`/admin/fechamentos/${data.id}`)
   }
@@ -115,28 +110,25 @@ function NovoFechamentoContent() {
               <div className="h-20 bg-white rounded-xl animate-pulse" />
             ) : (
               <div className="space-y-4">
-                <div className="space-y-2">
-                  <h2 className="font-display text-base text-brand-text">Pacote do mês</h2>
-                  {aulasDoMes.length === 0 ? (
-                    <div className="bg-white rounded-xl p-4 text-center shadow-card">
-                      <p className="text-sm text-brand-muted">Nenhuma aula este mês.</p>
-                    </div>
-                  ) : (
+
+                {pacotesPendentes.length > 0 && (
+                  <div className="space-y-2">
+                    <h2 className="font-display text-base text-brand-text">Pacotes pendentes</h2>
                     <div className="bg-white rounded-xl shadow-card divide-y divide-brand-line">
-                      <div className="flex items-center justify-between px-4 py-3">
-                        <div>
-                          <p className="text-sm font-medium text-brand-text">
-                             Pacote {temTorno ? 'torno' : 'manual'}
-                          </p>
-                          <p className="text-xs text-brand-muted">
-                            {temTorno ? 'Inclui pelo menos 1 aula no torno' : 'Todas as aulas no manual'}
-                          </p>
+                      {pacotesPendentes.map(p => (
+                        <div key={p.id} className="flex items-center justify-between px-4 py-3">
+                          <div>
+                            <p className="text-sm font-medium text-brand-text">
+                              Pacote {p.package_type === 'torno' ? 'torno' : 'manual'}
+                            </p>
+                            <p className="text-xs text-brand-muted">{p.credits} créditos</p>
+                          </div>
+                          <p className="text-sm font-medium text-brand-text">{formatCurrency(p.value)}</p>
                         </div>
-                        <p className="text-sm font-medium text-brand-text">{formatCurrency(valorPacote)}</p>
-                      </div>
+                      ))}
                     </div>
-                  )}
-                </div>
+                  </div>
+                )}
 
                 {pecasAbertas.length > 0 && (
                   <div className="space-y-2">
@@ -174,11 +166,17 @@ function NovoFechamentoContent() {
                   </div>
                 )}
 
+                {totalGeral === 0 && (
+                  <div className="bg-white rounded-xl p-4 text-center shadow-card">
+                    <p className="text-sm text-brand-muted">Nenhum item em aberto para esta aluna.</p>
+                  </div>
+                )}
+
                 <div className="bg-brand-blush rounded-xl p-4 space-y-2">
-                  {valorPacote > 0 && (
+                  {totalPacotes > 0 && (
                     <div className="flex justify-between text-sm">
-                      <span className="text-brand-mauve">Pacote {temTorno ? 'torno' : 'manual'}</span>
-                      <span className="text-brand-mauve">{formatCurrency(valorPacote)}</span>
+                      <span className="text-brand-mauve">Pacotes</span>
+                      <span className="text-brand-mauve">{formatCurrency(totalPacotes)}</span>
                     </div>
                   )}
                   {totalPecas > 0 && (

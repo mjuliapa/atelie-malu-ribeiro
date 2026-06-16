@@ -24,7 +24,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: fErr?.message ?? 'not found' }, { status: 404 })
     }
 
-    // busca profile separado
     const { data: profile } = await supabase
       .from('profiles')
       .select('full_name, phone, package_type')
@@ -47,7 +46,6 @@ export async function GET(request: NextRequest) {
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
 
-  // busca profiles para lista
   const studentIds = [...new Set((data ?? []).map((f: any) => f.student_id))]
   const { data: profiles } = await supabase
     .from('profiles')
@@ -65,19 +63,64 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   const body = await request.json()
-  const { id, piece_ids, argila_ids, ...update } = body
+  const { id, piece_ids, argila_ids, package_charge_ids, ...update } = body
   const supabase = getSupabase()
 
   const { error } = await supabase.from('monthly_closings').update(update).eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
 
   if (update.status === 'paid') {
+    const ops: Promise<any>[] = []
+
     if (piece_ids?.length) {
-      await supabase.from('pieces').update({ status: 'paid' }).in('id', piece_ids)
+      ops.push(supabase.from('pieces').update({ status: 'paid' }).in('id', piece_ids))
     }
+
     if (argila_ids?.length) {
-      await supabase.from('clay_sales').update({ status: 'paid' }).in('id', argila_ids)
+      ops.push(supabase.from('clay_sales').update({ status: 'paid' }).in('id', argila_ids))
     }
+
+    if (package_charge_ids?.length) {
+      ops.push(
+        supabase
+          .from('package_charges')
+          .update({ status: 'paid', paid_at: new Date().toISOString() })
+          .in('id', package_charge_ids)
+      )
+
+      // Busca os pacotes para saber quantos créditos adicionar
+      const { data: pacotes } = await supabase
+        .from('package_charges')
+        .select('student_id, credits')
+        .in('id', package_charge_ids)
+
+      if (pacotes?.length) {
+        // Agrupa créditos por aluna (pode haver mais de um pacote)
+        const creditosPorAluna: Record<string, number> = {}
+        for (const p of pacotes) {
+          creditosPorAluna[p.student_id] = (creditosPorAluna[p.student_id] ?? 0) + p.credits
+        }
+
+        for (const [student_id, creditsToAdd] of Object.entries(creditosPorAluna)) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('credits')
+            .eq('id', student_id)
+            .single()
+
+          if (profile) {
+            ops.push(
+              supabase
+                .from('profiles')
+                .update({ credits: (profile.credits ?? 0) + creditsToAdd })
+                .eq('id', student_id)
+            )
+          }
+        }
+      }
+    }
+
+    await Promise.all(ops)
   }
 
   return NextResponse.json({ ok: true })
