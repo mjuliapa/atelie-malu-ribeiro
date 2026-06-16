@@ -37,7 +37,7 @@ function PacoteContent() {
     setSaving(true)
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
+    if (!user) { setSaving(false); return }
 
     await fetch('/api/admin/package-charges', {
       method: 'POST',
@@ -52,22 +52,15 @@ function PacoteContent() {
       }),
     })
 
-    const { data: profile } = await supabase.from('profiles').select('credits').eq('id', selectedAlunaId).single()
-    const currentCredits = profile?.credits ?? 0
-    await supabase.from('profiles').update({
-      credits: currentCredits + 4,
-      package_type: tipo,
-    }).eq('id', selectedAlunaId)
-
     setSaving(false)
     router.push(`/admin/alunos/${selectedAlunaId}`)
   }
 
   return (
     <>
-      <AdminNavHeader title="Cobranca de pacote" showBack />
+      <AdminNavHeader title="Cobrança de pacote" showBack />
       <div className="px-4 pt-4 pb-6 space-y-5">
-        <h1 className="font-display text-2xl text-brand-text">Cobranca de pacote</h1>
+        <h1 className="font-display text-2xl text-brand-text">Cobrança de pacote</h1>
 
         {!alunaId ? (
           <div>
@@ -98,17 +91,17 @@ function PacoteContent() {
         </div>
 
         <div className="bg-brand-blush rounded-xl p-4 space-y-1">
-          <p className="text-xs text-brand-mauve">Resumo da cobranca</p>
+          <p className="text-xs text-brand-mauve">Resumo da cobrança</p>
           <div className="flex justify-between items-center">
-            <p className="text-sm text-brand-mauve">4 aulas - pacote {tipo}</p>
+            <p className="text-sm text-brand-mauve">4 aulas — pacote {tipo}</p>
             <p className="font-display text-2xl text-brand-mauve">{formatCurrency(PRECOS[tipo])}</p>
           </div>
-          <p className="text-xs text-brand-mauve/70">+4 creditos adicionados a conta da aluna</p>
+          <p className="text-xs text-brand-mauve/70">Créditos liberados após confirmação do pagamento</p>
         </div>
 
         <button onClick={handleSave} disabled={saving || !selectedAlunaId}
           className="w-full py-3 bg-brand-ink text-brand-cream rounded-xl font-medium text-sm disabled:opacity-50">
-          {saving ? 'Gerando...' : 'Confirmar cobranca'}
+          {saving ? 'Gerando...' : 'Confirmar cobrança'}
         </button>
       </div>
     </>
