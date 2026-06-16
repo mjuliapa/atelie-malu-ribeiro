@@ -32,11 +32,19 @@ type ArgilaSale = {
   clay_types: { name: string } | null
 }
 
+type PackageCharge = {
+  id: string
+  package_type: string
+  credits: number
+  value: number
+}
+
 export default function FechamentoDetailPage() {
   const { id } = useParams()
   const [fechamento, setFechamento] = useState<Fechamento | null>(null)
   const [items, setItems] = useState<Item[]>([])
   const [argilas, setArgilas] = useState<ArgilaSale[]>([])
+  const [pacotes, setPacotes] = useState<PackageCharge[]>([])
   const [loading, setLoading] = useState(true)
   const [pdfLoading, setPdfLoading] = useState(false)
 
@@ -48,10 +56,16 @@ export default function FechamentoDetailPage() {
       if (!data) { setLoading(false); return }
       setFechamento(data.fechamento as Fechamento)
       setItems((data.items ?? []) as Item[])
+
       if (data.fechamento?.id) {
-        const argilaRes = await fetch(`/api/admin/argila?closing_id=${data.fechamento.id}`)
+        const [argilaRes, pacotesRes] = await Promise.all([
+          fetch(`/api/admin/argila?closing_id=${data.fechamento.id}`),
+          fetch(`/api/admin/package-charges?closing_id=${data.fechamento.id}`),
+        ])
         const argilaData = await argilaRes.json()
+        const pacotesData = await pacotesRes.json()
         setArgilas(argilaData ?? [])
+        setPacotes(Array.isArray(pacotesData) ? pacotesData : [])
       }
       setLoading(false)
     }
@@ -69,6 +83,7 @@ export default function FechamentoDetailPage() {
         paid_at: new Date().toISOString(),
         piece_ids: items.map(i => i.piece_id).filter(Boolean),
         argila_ids: argilas.map(a => a.clay_sale_id ?? a.id),
+        package_charge_ids: pacotes.map(p => p.id),
       }),
     })
     setFechamento(prev => prev ? { ...prev, status: 'paid', paid_at: new Date().toISOString() } : null)
@@ -91,7 +106,7 @@ export default function FechamentoDetailPage() {
       const phone = fechamento.profiles?.phone?.replace(/\D/g, '')
       const totalPecas = items.reduce((sum, i) => sum + i.value_snapshot, 0)
       const totalArgila = argilas.reduce((sum, a) => sum + a.total_value, 0)
-      const packageValue = fechamento.total_value - totalPecas - totalArgila
+      const totalPacotes = pacotes.reduce((sum, p) => sum + p.value, 0)
       const packageLabel = fechamento.profiles?.package_type === 'torno' ? 'Pacote Torno' : 'Pacote Manual'
       const pageW = 210
       const margin = 20
@@ -120,34 +135,36 @@ export default function FechamentoDetailPage() {
 
       let y = 72
 
-      if (packageValue > 0) {
+      if (pacotes.length > 0) {
         doc.setFont('helvetica', 'bold')
         doc.setFontSize(8)
         doc.setTextColor(MUTED)
         doc.text('PACOTE', margin, y)
         y += 5
-        doc.setFillColor(WHITE)
-        doc.rect(margin, y, pageW - margin * 2, 10, 'F')
         doc.setDrawColor('#E8DADA')
         doc.setLineWidth(0.3)
-        doc.line(margin, y + 10, pageW - margin, y + 10)
-        doc.setFont('helvetica', 'normal')
-        doc.setFontSize(9)
-        doc.setTextColor(TEXT)
-        doc.text(packageLabel, margin + 2, y + 6.5)
-        doc.setFont('helvetica', 'bold')
-        doc.setTextColor(TEXT)
-        doc.text(formatCurrency(packageValue), pageW - margin - 2, y + 6.5, { align: 'right' })
-        y += 11
+        for (const p of pacotes) {
+          doc.setFillColor(WHITE)
+          doc.rect(margin, y, pageW - margin * 2, 10, 'F')
+          doc.line(margin, y + 10, pageW - margin, y + 10)
+          doc.setFont('helvetica', 'normal')
+          doc.setFontSize(9)
+          doc.setTextColor(TEXT)
+          doc.text(p.package_type === 'torno' ? 'Pacote Torno' : 'Pacote Manual', margin + 2, y + 6.5)
+          doc.setFont('helvetica', 'bold')
+          doc.setTextColor(TEXT)
+          doc.text(formatCurrency(p.value), pageW - margin - 2, y + 6.5, { align: 'right' })
+          y += 11
+        }
         doc.setFillColor(BLUSH)
         doc.rect(margin, y, pageW - margin * 2, 8, 'F')
         doc.setFont('helvetica', 'normal')
         doc.setFontSize(8)
         doc.setTextColor(MUTED)
-        doc.text('Subtotal pacote', margin + 2, y + 5.5)
+        doc.text('Subtotal pacotes', margin + 2, y + 5.5)
         doc.setFont('helvetica', 'bold')
         doc.setTextColor(MAUVE_DARK)
-        doc.text(formatCurrency(packageValue), pageW - margin - 2, y + 5.5, { align: 'right' })
+        doc.text(formatCurrency(totalPacotes), pageW - margin - 2, y + 5.5, { align: 'right' })
         y += 14
       }
 
@@ -247,7 +264,6 @@ export default function FechamentoDetailPage() {
 
       const pdfBlob = doc.output('blob')
       const blobUrl = URL.createObjectURL(pdfBlob)
-
       const link = document.createElement('a')
       link.href = blobUrl
       link.download = 'fechamento-' + fechamento.reference_month.replace(/\s/g, '-') + '.pdf'
@@ -258,7 +274,6 @@ export default function FechamentoDetailPage() {
       if (phone) {
         setTimeout(() => { window.location.href = 'https://wa.me/55' + phone }, 1000)
       }
-
     } catch (err) {
       console.error('Erro ao gerar PDF:', err)
       alert('Nao foi possivel gerar o PDF. Tente novamente.')
@@ -273,6 +288,7 @@ export default function FechamentoDetailPage() {
   const nome = fechamento.profiles?.full_name ?? 'Aluna'
   const totalPecas = items.reduce((sum, i) => sum + i.value_snapshot, 0)
   const totalArgila = argilas.reduce((sum, a) => sum + a.total_value, 0)
+  const totalPacotes = pacotes.reduce((sum, p) => sum + p.value, 0)
 
   return (
     <>
@@ -282,6 +298,7 @@ export default function FechamentoDetailPage() {
           <h1 className="font-display text-2xl text-brand-text">{nome}</h1>
           <p className="text-sm text-brand-muted">{fechamento.reference_month}</p>
         </div>
+
         <div className={`rounded-xl px-4 py-3 flex items-center justify-between ${fechamento.status === 'paid' ? 'bg-status-paid-bg' : 'bg-status-open-bg'}`}>
           <p className={`text-sm font-medium ${fechamento.status === 'paid' ? 'text-status-paid-text' : 'text-status-open-text'}`}>
             {fechamento.status === 'paid' ? 'Pago' : 'Aguardando pagamento'}
@@ -290,6 +307,26 @@ export default function FechamentoDetailPage() {
             <p className="text-xs text-status-paid-text">{formatDate(fechamento.paid_at)}</p>
           )}
         </div>
+
+        {pacotes.length > 0 && (
+          <div className="space-y-1">
+            <p className="text-xs font-medium tracking-widest uppercase text-brand-muted px-1">Pacotes</p>
+            <div className="bg-white rounded-xl shadow-card divide-y divide-brand-line">
+              {pacotes.map(p => (
+                <div key={p.id} className="flex items-center justify-between px-4 py-3">
+                  <div>
+                    <p className="text-sm font-medium text-brand-text">
+                      {p.package_type === 'torno' ? 'Pacote Torno' : 'Pacote Manual'}
+                    </p>
+                    <p className="text-xs text-brand-muted">{p.credits} créditos</p>
+                  </div>
+                  <p className="text-sm font-medium text-brand-text">{formatCurrency(p.value)}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {items.length > 0 && (
           <div className="space-y-1">
             <p className="text-xs font-medium tracking-widest uppercase text-brand-muted px-1">Pecas</p>
@@ -306,6 +343,7 @@ export default function FechamentoDetailPage() {
             </div>
           </div>
         )}
+
         {argilas.length > 0 && (
           <div className="space-y-1">
             <p className="text-xs font-medium tracking-widest uppercase text-brand-muted px-1">Argila</p>
@@ -324,7 +362,14 @@ export default function FechamentoDetailPage() {
             </div>
           </div>
         )}
+
         <div className="bg-white rounded-xl shadow-card divide-y divide-brand-line">
+          {totalPacotes > 0 && (
+            <div className="flex justify-between px-4 py-3">
+              <p className="text-sm text-brand-muted">Pacotes</p>
+              <p className="text-sm font-medium text-brand-text">{formatCurrency(totalPacotes)}</p>
+            </div>
+          )}
           {totalPecas > 0 && (
             <div className="flex justify-between px-4 py-3">
               <p className="text-sm text-brand-muted">Pecas</p>
@@ -342,10 +387,12 @@ export default function FechamentoDetailPage() {
             <p className="font-display text-xl text-brand-text">{formatCurrency(fechamento.total_value)}</p>
           </div>
         </div>
+
         <div className="bg-white rounded-xl shadow-card px-4 py-3 text-center">
           <p className="text-xs text-brand-muted mb-1">Chave PIX</p>
           <p className="text-sm font-medium text-brand-text">46.504.315/0001-77</p>
         </div>
+
         <div className="space-y-2">
           <button onClick={gerarPDFECompartilhar} disabled={pdfLoading}
             className="w-full py-3 bg-[#25D366] text-white rounded-xl font-medium text-sm flex items-center justify-center gap-2 disabled:opacity-60">
