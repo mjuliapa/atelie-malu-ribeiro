@@ -10,6 +10,22 @@ export const metadata: Metadata = {
     statusBarStyle: 'default',
     title: 'Ateliê Malu',
   },
+  openGraph: {
+    title: 'Ateliê Malu Ribeiro',
+    description: 'Cerâmica autoral',
+    url: 'https://atelie-malu-ribeiro.vercel.app',
+    siteName: 'Ateliê Malu Ribeiro',
+    images: [
+      {
+        url: 'https://atelie-malu-ribeiro.vercel.app/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'Ateliê Malu Ribeiro',
+      },
+    ],
+    locale: 'pt_BR',
+    type: 'website',
+  },
 }
 
 export const viewport: Viewport = {
