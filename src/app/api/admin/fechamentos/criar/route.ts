@@ -13,13 +13,15 @@ export async function POST(request: NextRequest) {
   const { student_id, reference_month, total_value, pecas, argilas, pacotes, created_by } = await request.json()
   const supabase = getSupabase()
 
-  if (!created_by) {
-    return NextResponse.json({ error: 'created_by é obrigatório' }, { status: 400 })
+  // created_by pode ser null se sessão expirou — usa student_id como fallback
+  const createdBy = created_by ?? student_id
+  if (!createdBy) {
+    return NextResponse.json({ error: 'created_by e student_id ausentes' }, { status: 400 })
   }
 
   const { data: fechamento, error } = await supabase
     .from('monthly_closings')
-    .insert({ student_id, reference_month, total_value, status: 'awaiting_payment', created_by })
+    .insert({ student_id, reference_month, total_value, status: 'awaiting_payment', created_by: createdBy })
     .select()
     .single()
 
