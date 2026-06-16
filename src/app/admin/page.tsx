@@ -25,17 +25,14 @@ export default async function AdminDashboardPage() {
       .eq('role', 'student').eq('status', 'active'),
   ])
 
-  const pecaOpen   = (pecas ?? []).filter(p => p.status === 'open').reduce((s, p) => s + p.calculated_value, 0)
-  const pecaClosed = (pecas ?? []).filter(p => p.status === 'closed').reduce((s, p) => s + p.calculated_value, 0)
-  const pecaPaid   = (pecas ?? []).filter(p => p.status === 'paid').reduce((s, p) => s + p.calculated_value, 0)
+  const pecaOpen = (pecas ?? []).filter(p => p.status === 'open').reduce((s, p) => s + p.calculated_value, 0)
+  const pecaPaid = (pecas ?? []).filter(p => p.status === 'paid').reduce((s, p) => s + p.calculated_value, 0)
 
-  const argilaOpen   = (argilas ?? []).filter(a => a.status === 'open').reduce((s, a) => s + a.total_value, 0)
-  const argilaClosed = (argilas ?? []).filter(a => a.status === 'closed').reduce((s, a) => s + a.total_value, 0)
-  const argilaPaid   = (argilas ?? []).filter(a => a.status === 'paid').reduce((s, a) => s + a.total_value, 0)
+  const argilaOpen = (argilas ?? []).filter(a => a.status === 'open').reduce((s, a) => s + a.total_value, 0)
+  const argilaPaid = (argilas ?? []).filter(a => a.status === 'paid').reduce((s, a) => s + a.total_value, 0)
 
-  const fechOpen    = (fechamentos ?? []).filter(f => f.status === 'awaiting_payment').reduce((s, f) => s + f.total_value, 0)
-  const fechClosed  = (fechamentos ?? []).filter(f => f.status === 'closed').reduce((s, f) => s + f.total_value, 0)
-  const fechPaid    = (fechamentos ?? []).filter(f => f.status === 'paid').reduce((s, f) => s + f.total_value, 0)
+  const fechOpen = (fechamentos ?? []).filter(f => f.status === 'awaiting_payment').reduce((s, f) => s + f.total_value, 0)
+  const fechPaid = (fechamentos ?? []).filter(f => f.status === 'paid').reduce((s, f) => s + f.total_value, 0)
 
   return (
     <>
@@ -53,14 +50,10 @@ export default async function AdminDashboardPage() {
             <span className="text-base">🏺</span>
             <p className="text-xs font-medium tracking-widest uppercase text-brand-muted">Peças</p>
           </div>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             <div>
               <p className="text-[10px] text-brand-muted mb-0.5">Em aberto</p>
               <p className="font-display text-sm text-status-open-text">{formatCurrency(pecaOpen)}</p>
-            </div>
-            <div>
-              <p className="text-[10px] text-brand-muted mb-0.5">Fechadas</p>
-              <p className="font-display text-sm text-status-closed-text">{formatCurrency(pecaClosed)}</p>
             </div>
             <div>
               <p className="text-[10px] text-brand-muted mb-0.5">Pagas</p>
@@ -74,14 +67,10 @@ export default async function AdminDashboardPage() {
             <span className="text-base">🪨</span>
             <p className="text-xs font-medium tracking-widest uppercase text-brand-muted">Argila</p>
           </div>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             <div>
               <p className="text-[10px] text-brand-muted mb-0.5">Em aberto</p>
               <p className="font-display text-sm text-status-open-text">{formatCurrency(argilaOpen)}</p>
-            </div>
-            <div>
-              <p className="text-[10px] text-brand-muted mb-0.5">Fechada</p>
-              <p className="font-display text-sm text-status-closed-text">{formatCurrency(argilaClosed)}</p>
             </div>
             <div>
               <p className="text-[10px] text-brand-muted mb-0.5">Paga</p>
@@ -95,14 +84,10 @@ export default async function AdminDashboardPage() {
             <span className="text-base">📋</span>
             <p className="text-xs font-medium tracking-widest uppercase text-brand-mauve">Fechamentos</p>
           </div>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             <div>
-              <p className="text-[10px] text-brand-mauve/70 mb-0.5">Em aberto</p>
+              <p className="text-[10px] text-brand-mauve/70 mb-0.5">Aguardando</p>
               <p className="font-display text-sm text-brand-mauve">{formatCurrency(fechOpen)}</p>
-            </div>
-            <div>
-              <p className="text-[10px] text-brand-mauve/70 mb-0.5">Fechado</p>
-              <p className="font-display text-sm text-brand-mauve">{formatCurrency(fechClosed)}</p>
             </div>
             <div>
               <p className="text-[10px] text-brand-mauve/70 mb-0.5">Pago</p>
