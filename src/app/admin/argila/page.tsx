@@ -18,12 +18,13 @@ type Sale = {
 
 export default function AdminArgilaPage() {
   const [sales, setSales] = useState<Sale[]>([])
-  const [filter, setFilter] = useState<'all' | 'open' | 'closed' | 'paid'>('all')
+  const [filter, setFilter] = useState<'all' | 'open' | 'paid'>('all')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     setLoading(true)
-    fetch(`/api/admin/argila?status=${filter}`)
+    const param = filter === 'all' ? '' : `?status=${filter}`
+    fetch(`/api/admin/argila${param}`)
       .then(r => r.json())
       .then(data => { setSales(data); setLoading(false) })
   }, [filter])
@@ -61,7 +62,7 @@ export default function AdminArgilaPage() {
         )}
 
         <div className="flex gap-2 overflow-x-auto pb-1">
-          {(['all', 'open', 'closed', 'paid'] as const).map(f => (
+          {(['all', 'open', 'paid'] as const).map(f => (
             <button key={f} onClick={() => setFilter(f)}
               className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
                 filter === f ? 'bg-brand-ink text-brand-cream' : 'bg-white text-brand-muted border border-brand-line'
@@ -93,7 +94,7 @@ export default function AdminArgilaPage() {
                 <div className="text-right flex-shrink-0">
                   <p className="text-sm font-medium text-brand-text">{formatCurrency(s.total_value)}</p>
                   <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${statusColor[s.status]}`}>
-                    {statusLabel[s.status]}
+                    {statusLabel[s.status] ?? s.status}
                   </span>
                 </div>
               </div>

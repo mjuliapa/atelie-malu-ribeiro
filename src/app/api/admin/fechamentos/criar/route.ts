@@ -40,7 +40,10 @@ export async function POST(request: NextRequest) {
   }
 
   if (pacotes?.length) {
-    await supabase.from('package_charges').update({ status: 'closed' }).in('id', pacotes.map((p: any) => p.id))
+    await supabase
+      .from('package_charges')
+      .update({ status: 'closed', closing_id: fechamento.id })
+      .in('id', pacotes.map((p: any) => p.id))
   }
 
   return NextResponse.json({ id: fechamento.id })

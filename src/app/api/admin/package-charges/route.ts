@@ -13,11 +13,13 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const studentId = searchParams.get('student_id')
   const status = searchParams.get('status')
+  const closingId = searchParams.get('closing_id')
   const supabase = getSupabase()
 
   let query = supabase.from('package_charges').select('*').order('created_at', { ascending: false })
   if (studentId) query = query.eq('student_id', studentId)
   if (status) query = query.eq('status', status)
+  if (closingId) query = query.eq('closing_id', closingId)
 
   const { data, error } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
