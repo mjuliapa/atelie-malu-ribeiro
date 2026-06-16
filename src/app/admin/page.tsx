@@ -27,16 +27,16 @@ export default async function AdminDashboardPage() {
       .eq('role', 'student').eq('status', 'active'),
   ])
 
-  const pecaOpen     = (pecas ?? []).filter(p => p.status === 'open').reduce((s, p) => s + p.calculated_value, 0)
-  const pecaClosed   = (pecas ?? []).filter(p => p.status === 'closed').reduce((s, p) => s + p.calculated_value, 0)
-  const pecaPaid     = (pecas ?? []).filter(p => p.status === 'paid').reduce((s, p) => s + p.calculated_value, 0)
+  const pecaOpen   = (pecas ?? []).filter(p => p.status === 'open').reduce((s, p) => s + p.calculated_value, 0)
+  const pecaClosed = (pecas ?? []).filter(p => p.status === 'closed').reduce((s, p) => s + p.calculated_value, 0)
+  const pecaPaid   = (pecas ?? []).filter(p => p.status === 'paid').reduce((s, p) => s + p.calculated_value, 0)
 
   const argilaOpen   = (argilas ?? []).filter(a => a.status === 'open').reduce((s, a) => s + a.total_value, 0)
   const argilaClosed = (argilas ?? []).filter(a => a.status === 'closed').reduce((s, a) => s + a.total_value, 0)
   const argilaPaid   = (argilas ?? []).filter(a => a.status === 'paid').reduce((s, a) => s + a.total_value, 0)
 
-  const fechOpen     = (fechamentos ?? []).filter(f => f.status === 'awaiting_payment').reduce((s, f) => s + f.total_value, 0)
-  const fechPaid     = (fechamentos ?? []).filter(f => f.status === 'paid').reduce((s, f) => s + f.total_value, 0)
+  const fechOpen = (fechamentos ?? []).filter(f => f.status === 'awaiting_payment').reduce((s, f) => s + f.total_value, 0)
+  const fechPaid = (fechamentos ?? []).filter(f => f.status === 'paid').reduce((s, f) => s + f.total_value, 0)
 
   const pacoteOpen   = (pacotes ?? []).filter(p => p.status === 'awaiting_payment').reduce((s, p) => s + p.value, 0)
   const pacoteClosed = (pacotes ?? []).filter(p => p.status === 'closed').reduce((s, p) => s + p.value, 0)
@@ -95,23 +95,6 @@ export default async function AdminDashboardPage() {
           </div>
         </Link>
 
-        <Link href="/admin/fechamentos" className="block bg-brand-blush rounded-xl shadow-card p-4 space-y-3">
-          <div className="flex items-center gap-2">
-            <span className="text-base">📋</span>
-            <p className="text-xs font-medium tracking-widest uppercase text-brand-mauve">Fechamentos</p>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <p className="text-[10px] text-brand-mauve/70 mb-0.5">Aguardando</p>
-              <p className="font-display text-sm text-brand-mauve">{formatCurrency(fechOpen)}</p>
-            </div>
-            <div>
-              <p className="text-[10px] text-brand-mauve/70 mb-0.5">Pago</p>
-              <p className="font-display text-sm text-brand-mauve">{formatCurrency(fechPaid)}</p>
-            </div>
-          </div>
-        </Link>
-
         <Link href="/admin/fechamentos/pacote" className="block bg-white rounded-xl shadow-card p-4 space-y-3">
           <div className="flex items-center gap-2">
             <span className="text-base">🖊️</span>
@@ -129,6 +112,23 @@ export default async function AdminDashboardPage() {
             <div>
               <p className="text-[10px] text-brand-muted mb-0.5">Pago</p>
               <p className="font-display text-sm text-status-paid-text">{formatCurrency(pacotePaid)}</p>
+            </div>
+          </div>
+        </Link>
+
+        <Link href="/admin/fechamentos" className="block bg-brand-blush rounded-xl shadow-card p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="text-base">📋</span>
+            <p className="text-xs font-medium tracking-widest uppercase text-brand-mauve">Fechamentos</p>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <p className="text-[10px] text-brand-mauve/70 mb-0.5">Aguardando</p>
+              <p className="font-display text-sm text-brand-mauve">{formatCurrency(fechOpen)}</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-brand-mauve/70 mb-0.5">Pago</p>
+              <p className="font-display text-sm text-brand-mauve">{formatCurrency(fechPaid)}</p>
             </div>
           </div>
         </Link>
