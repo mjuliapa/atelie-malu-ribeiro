@@ -189,7 +189,7 @@ export default function AlunoAgendaPage() {
                         ? '✓ Você está agendada'
                         : isFull
                           ? 'Turma completa'
-                          : `${available} vaga${available !== 1 ? 's' : ''} disponível${available !== 1 ? 'is' : ''}`
+                          : `${available} vaga${available !== 1 ? 's' : ''} disponível${available !== 1 ? 's' : ''}`
                       }
                     </p>
                   </div>
