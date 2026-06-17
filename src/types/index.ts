@@ -111,6 +111,7 @@ export interface Appointment {
   // joins
   slot?: ScheduleSlot
   student?: Profile
+  profiles?: Profile
 }
 
 export type AttendanceStatus = 'present' | 'absent' | 'justified'
