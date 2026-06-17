@@ -138,11 +138,11 @@ export function SlotCard({
               <div key={appointment.id} className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-full bg-brand-blush flex items-center justify-center">
                   <span className="text-xs font-medium text-brand-mauve">
-                    {(appointment.student as { full_name?: string })?.full_name?.charAt(0).toUpperCase() ?? '?'}
+                    {((appointment.profiles ?? appointment.student) as { full_name?: string })?.full_name?.charAt(0).toUpperCase() ?? '?'}
                   </span>
                 </div>
                 <span className="text-sm text-brand-text">
-                  {(appointment.student as { full_name?: string })?.full_name ?? 'Aluna'}
+                  {((appointment.profiles ?? appointment.student) as { full_name?: string })?.full_name ?? 'Aluna'}
                 </span>
               </div>
             ))}
