@@ -159,6 +159,30 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: err.message })
     }
   }
+  if (action === 'create_venda_livre_firing_type') {
+    const { data: existing } = await supabase
+      .from('firing_types')
+      .select('id')
+      .eq('name', 'Venda livre (sem cálculo)')
+      .maybeSingle()
 
+    if (existing) {
+      return NextResponse.json({ message: 'Já existe', id: existing.id })
+    }
+
+    const { data, error } = await supabase
+      .from('firing_types')
+      .insert({
+        name: 'Venda livre (sem cálculo)',
+        coefficient: 1,
+        description: 'Usado para venda de peças avulsas — valor digitado diretamente',
+        is_active: true,
+      })
+      .select()
+      .single()
+
+    return NextResponse.json({ data, error: error?.message })
+  }
+  
   return NextResponse.json({ error: 'action inválida' }, { status: 400 })
 }
