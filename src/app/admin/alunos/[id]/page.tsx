@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { AdminNavHeader } from '@/components/admin/AdminNav'
+import { AlunaStatusToggle } from '@/components/admin/AlunaStatusToggle'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -29,7 +30,6 @@ export default async function AlunaDetailPage({ params }: { params: Promise<{ id
   const packageType = aluna.package_type ?? 'manual'
   const packageValue = packageType === 'torno' ? 460 : 420
 
-  // Totais por status
   const totalPecasAberto = (pecas ?? []).filter(p => p.status === 'open').reduce((s, p) => s + p.calculated_value, 0)
   const totalPecasFechado = (pecas ?? []).filter(p => p.status === 'closed').reduce((s, p) => s + p.calculated_value, 0)
   const totalPecasPago = (pecas ?? []).filter(p => p.status === 'paid').reduce((s, p) => s + p.calculated_value, 0)
@@ -66,6 +66,7 @@ export default async function AlunaDetailPage({ params }: { params: Promise<{ id
             <h1 className="font-display text-xl text-brand-text">{aluna.full_name}</h1>
             <p className="text-sm text-brand-muted">{aluna.phone ?? 'Sem telefone'}</p>
           </div>
+          <AlunaStatusToggle id={id} currentStatus={aluna.status ?? 'active'} />
         </div>
 
         {/* Creditos */}
