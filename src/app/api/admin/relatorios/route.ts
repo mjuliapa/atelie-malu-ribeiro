@@ -116,7 +116,10 @@ export async function GET(request: NextRequest) {
     pago: resumoPorAluna.reduce((s, a) => s + a.totalPago, 0),
     aberto: resumoPorAluna.reduce((s, a) => s + a.totalAberto, 0),
   }
-  totalGeral['total'] = totalGeral.pecas + totalGeral.argila + totalGeral.pacotes
+  const totalGeralCompleto = {
+    ...totalGeral,
+    total: totalGeral.pecas + totalGeral.argila + totalGeral.pacotes,
+  }
 
   return NextResponse.json({
     periodo: { from, to },
@@ -125,6 +128,6 @@ export async function GET(request: NextRequest) {
     pacotes: pacotes ?? [],
     fechamentos: fechamentos ?? [],
     resumoPorAluna,
-    totalGeral,
+    totalGeral: totalGeralCompleto,
   })
 }
