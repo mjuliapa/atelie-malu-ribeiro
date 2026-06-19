@@ -39,6 +39,8 @@ function PacoteContent() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setSaving(false); return }
 
+    // IMPORTANTE: NÃO soma crédito aqui. Crédito só é somado quando o
+    // fechamento for marcado como PAGO (em /api/admin/fechamentos PATCH).
     await fetch('/api/admin/package-charges', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
