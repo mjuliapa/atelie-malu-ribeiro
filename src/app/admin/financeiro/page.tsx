@@ -61,6 +61,19 @@ export default async function FinanceiroPage() {
       open: pacoteOpen,
       paid: pacotePaid,
     },
+    {
+      href: '/admin/financeiro/pecas-avulsas/nova',
+      label: 'Peças',
+      desc: 'Venda de peças avulsas — nome e valor livres',
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-6 h-6">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M20.59 13.41L13.42 20.58a2 2 0 0 1-2.83 0L2.59 12.58a2 2 0 0 1 0-2.83l7.17-7.17a2 2 0 0 1 2.83 0L20.59 10.58a2 2 0 0 1 0 2.83z" />
+          <line x1="7" y1="7" x2="7.01" y2="7" strokeLinecap="round" />
+        </svg>
+      ),
+      open: 0, // como reaproveita pieces, fica difícil separar do total de Queima — ajustamos se precisar
+      paid: 0,
+    },
   ]
 
   return (

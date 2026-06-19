@@ -46,8 +46,9 @@ const adminNavItems = [
     label: 'Financeiro',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-5 h-5">
-        <line x1="12" y1="1" x2="12" y2="23" strokeLinecap="round" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+        <rect x="2" y="6" width="20" height="13" rx="2" strokeLinecap="round" strokeLinejoin="round" />
+        <circle cx="12" cy="12.5" r="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M2 10h20" />
       </svg>
     ),
   },
