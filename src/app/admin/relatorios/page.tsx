@@ -158,7 +158,6 @@ export default function RelatoriosPage() {
       doc.text(formatCurrency(data.totalGeral.pacotes), pageW - margin - 6, y + 19, { align: 'right' })
 
     } else {
-      // Relatorio por aluna — detalhado
       if (data.pecas.length > 0) {
         doc.setFont('helvetica', 'bold')
         doc.setFontSize(8)
@@ -276,16 +275,16 @@ export default function RelatoriosPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-2 gap-2">
-          <div>
+        <div className="grid grid-cols-2 gap-2 min-w-0">
+          <div className="min-w-0">
             <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-1.5">De</label>
             <input type="date" value={from} onChange={e => setFrom(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-brand-line bg-white text-brand-text focus:outline-none focus:border-brand-mauve" />
+              className="w-full min-w-0 px-3 py-3 rounded-xl border border-brand-line bg-white text-brand-text text-sm focus:outline-none focus:border-brand-mauve" />
           </div>
-          <div>
+          <div className="min-w-0">
             <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-1.5">Até</label>
             <input type="date" value={to} onChange={e => setTo(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-brand-line bg-white text-brand-text focus:outline-none focus:border-brand-mauve" />
+              className="w-full min-w-0 px-3 py-3 rounded-xl border border-brand-line bg-white text-brand-text text-sm focus:outline-none focus:border-brand-mauve" />
           </div>
         </div>
 
