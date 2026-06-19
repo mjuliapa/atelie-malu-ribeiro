@@ -1,0 +1,112 @@
+import { createClient } from '@/lib/supabase/server'
+import { AdminNavHeader } from '@/components/admin/AdminNav'
+import { formatCurrency } from '@/lib/utils'
+import Link from 'next/link'
+
+export default async function FinanceiroPage() {
+  const supabase = await createClient()
+
+  const [{ data: pecas }, { data: argilas }, { data: pacotes }] = await Promise.all([
+    supabase.from('pieces').select('calculated_value, status'),
+    supabase.from('clay_sales').select('total_value, status'),
+    supabase.from('package_charges').select('value, status'),
+  ])
+
+  const pecaOpen = (pecas ?? []).filter(p => p.status === 'open').reduce((s, p) => s + p.calculated_value, 0)
+  const pecaPaid = (pecas ?? []).filter(p => p.status === 'paid').reduce((s, p) => s + p.calculated_value, 0)
+
+  const argilaOpen = (argilas ?? []).filter(a => a.status === 'open').reduce((s, a) => s + a.total_value, 0)
+  const argilaPaid = (argilas ?? []).filter(a => a.status === 'paid').reduce((s, a) => s + a.total_value, 0)
+
+  const pacoteOpen = (pacotes ?? []).filter(p => p.status === 'awaiting_payment').reduce((s, p) => s + p.value, 0)
+  const pacotePaid = (pacotes ?? []).filter(p => p.status === 'paid').reduce((s, p) => s + p.value, 0)
+
+  const modulos = [
+    {
+      href: '/admin/pecas',
+      label: 'Queima',
+      desc: 'Peças com cálculo por dimensão e tipo de queima',
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-6 h-6">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2" />
+        </svg>
+      ),
+      open: pecaOpen,
+      paid: pecaPaid,
+    },
+    {
+      href: '/admin/argila',
+      label: 'Argila',
+      desc: 'Venda de argila por tipo e quantidade',
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-6 h-6">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z" />
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 7V5a2 2 0 0 0-2-2H8" />
+        </svg>
+      ),
+      open: argilaOpen,
+      paid: argilaPaid,
+    },
+    {
+      href: '/admin/fechamentos/pacote',
+      label: 'Pacote de aulas',
+      desc: 'Cobrança de pacotes manual ou torno',
+      icon: (
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-6 h-6">
+          <rect x="2" y="5" width="20" height="14" rx="2" strokeLinecap="round" strokeLinejoin="round" />
+          <line x1="2" y1="10" x2="22" y2="10" strokeLinecap="round" />
+        </svg>
+      ),
+      open: pacoteOpen,
+      paid: pacotePaid,
+    },
+  ]
+
+  return (
+    <>
+      <AdminNavHeader title="Financeiro" />
+      <div className="px-4 pt-4 pb-6 space-y-4">
+        <div>
+          <h1 className="font-display text-2xl text-brand-text">Financeiro</h1>
+          <p className="text-sm text-brand-muted">Queima, argila e pacotes de aula</p>
+        </div>
+
+        <div className="space-y-3">
+          {modulos.map(m => (
+            <Link key={m.href} href={m.href}
+              className="block bg-white rounded-xl shadow-card p-4 hover:bg-brand-cream transition-colors">
+              <div className="flex items-start gap-3">
+                <div className="w-11 h-11 rounded-xl bg-brand-blush flex items-center justify-center text-brand-mauve flex-shrink-0">
+                  {m.icon}
+                </div>
+                <div className="flex-1">
+                  <p className="font-display text-base text-brand-text">{m.label}</p>
+                  <p className="text-xs text-brand-muted mb-2">{m.desc}</p>
+                  <div className="flex gap-4">
+                    <div>
+                      <p className="text-[10px] text-brand-muted">Em aberto</p>
+                      <p className="text-sm font-medium text-status-open-text">{formatCurrency(m.open)}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-brand-muted">Pago</p>
+                      <p className="text-sm font-medium text-status-paid-text">{formatCurrency(m.paid)}</p>
+                    </div>
+                  </div>
+                </div>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-5 h-5 text-brand-muted flex-shrink-0 mt-1">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </div>
+            </Link>
+          ))}
+        </div>
+
+        <Link href="/admin/relatorios"
+          className="block bg-brand-blush rounded-xl p-4 text-center hover:bg-brand-mauve/10 transition-colors">
+          <p className="text-sm font-medium text-brand-mauve">📊 Ver relatórios financeiros</p>
+        </Link>
+      </div>
+    </>
+  )
+}

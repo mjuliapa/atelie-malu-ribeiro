@@ -42,22 +42,12 @@ const adminNavItems = [
     ),
   },
   {
-    href: '/admin/pecas',
-    label: 'Peças',
+    href: '/admin/financeiro',
+    label: 'Financeiro',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-5 h-5">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2" />
-      </svg>
-    ),
-  },
-  {
-    href: '/admin/argila',
-    label: 'Argila',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-5 h-5">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 7V5a2 2 0 0 0-2-2H8" />
+        <line x1="12" y1="1" x2="12" y2="23" strokeLinecap="round" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
       </svg>
     ),
   },
