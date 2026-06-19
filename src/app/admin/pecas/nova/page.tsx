@@ -13,7 +13,7 @@ function cn(...classes: (string | boolean | undefined)[]) {
   return classes.filter(Boolean).join(' ')
 }
 
-function NovaPecaContent() {
+function NovaQueimaContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const alunaParam = searchParams.get('aluna')
@@ -27,6 +27,7 @@ function NovaPecaContent() {
   const [height, setHeight] = useState('')
   const [width, setWidth] = useState('')
   const [length, setLength] = useState('')
+  const [quantity, setQuantity] = useState(1)
   const [firingTypeId, setFiringTypeId] = useState('')
   const [notes, setNotes] = useState('')
   const [pieceDate, setPieceDate] = useState(new Date().toISOString().split('T')[0])
@@ -50,7 +51,8 @@ function NovaPecaContent() {
   const l = parseFloat(length) || 0
   const volume = h * w * l
   const selectedFiring = firingTypes.find(f => f.id === firingTypeId)
-  const valor = volume * (selectedFiring?.coefficient ?? 0)
+  const valorUnitario = volume * (selectedFiring?.coefficient ?? 0)
+  const valorTotal = valorUnitario * quantity
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -60,17 +62,25 @@ function NovaPecaContent() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
+    // Guarda quantidade no campo notes com prefixo estruturado
+    // (sem precisar de coluna nova no banco)
+    const notesComQuantidade = quantity > 1
+      ? `qty:${quantity}|${notes.trim()}`
+      : notes.trim()
+
+    const finalName = quantity > 1 ? `${quantity}x ${name.trim()}` : name.trim()
+
     const { error } = await supabase.from('pieces').insert({
       student_id: studentId,
-      name: name.trim(),
+      name: finalName,
       height: h,
       width: w,
       length: l,
       firing_type_id: firingTypeId,
       coefficient: selectedFiring?.coefficient ?? 0,
-      calculated_value: valor,
+      calculated_value: valorTotal,
       piece_date: pieceDate,
-      notes: notes.trim() || null,
+      notes: notesComQuantidade || null,
       created_by: user.id,
     })
 
@@ -82,9 +92,9 @@ function NovaPecaContent() {
 
   return (
     <>
-      <AdminNavHeader title="Nova peça" showBack />
+      <AdminNavHeader title="Nova queima" showBack />
       <div className="px-4 pt-4 pb-6">
-        <h1 className="font-display text-2xl text-brand-text mb-5">Nova peça</h1>
+        <h1 className="font-display text-2xl text-brand-text mb-5">Nova queima</h1>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -121,8 +131,26 @@ function NovaPecaContent() {
           <div>
             <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-1.5">Nome da peça</label>
             <input required value={name} onChange={e => setName(e.target.value)}
-              placeholder="Ex: Vaso decorativo"
+              placeholder="Ex: Copo, Vaso decorativo"
               className="w-full px-4 py-3 rounded-xl border border-brand-line bg-white text-brand-text focus:outline-none focus:border-brand-mauve" />
+            {quantity > 1 && (
+              <p className="text-xs text-brand-muted mt-1">Vai aparecer como: "{quantity}x {name || '...'}"</p>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-1.5">Quantidade</label>
+            <div className="flex items-center gap-4">
+              <button type="button" onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                className="w-10 h-10 rounded-xl border border-brand-line bg-white text-brand-text text-lg font-medium hover:border-brand-mauve transition-colors">
+                −
+              </button>
+              <span className="font-display text-2xl text-brand-text min-w-[2rem] text-center">{quantity}</span>
+              <button type="button" onClick={() => setQuantity(q => q + 1)}
+                className="w-10 h-10 rounded-xl border border-brand-line bg-white text-brand-text text-lg font-medium hover:border-brand-mauve transition-colors">
+                +
+              </button>
+            </div>
           </div>
 
           <div>
@@ -132,7 +160,9 @@ function NovaPecaContent() {
           </div>
 
           <div>
-            <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-1.5">Dimensões (cm)</label>
+            <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-1.5">
+              Dimensões (cm) {quantity > 1 ? '— de cada peça' : ''}
+            </label>
             <div className="grid grid-cols-3 gap-2">
               {[
                 { label: 'Altura', value: height, set: setHeight },
@@ -178,7 +208,7 @@ function NovaPecaContent() {
               <p className="text-xs font-medium tracking-widest uppercase text-brand-mauve">Cálculo automático</p>
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div>
-                  <p className="text-xs text-brand-muted">Volume</p>
+                  <p className="text-xs text-brand-muted">Volume (1 peça)</p>
                   <p className="font-medium text-brand-text">{volume.toFixed(0)} cm³</p>
                 </div>
                 <div>
@@ -186,9 +216,17 @@ function NovaPecaContent() {
                   <p className="font-medium text-brand-text">{selectedFiring?.coefficient}</p>
                 </div>
               </div>
+              {quantity > 1 && (
+                <div className="flex justify-between items-center text-sm border-t border-brand-line pt-2">
+                  <p className="text-brand-muted">Valor unitário</p>
+                  <p className="font-medium text-brand-text">{formatCurrency(valorUnitario)}</p>
+                </div>
+              )}
               <div className="border-t border-brand-line pt-2 flex justify-between items-center">
-                <p className="text-sm text-brand-muted">Valor calculado</p>
-                <p className="font-display text-2xl text-brand-mauve">{formatCurrency(valor)}</p>
+                <p className="text-sm text-brand-muted">
+                  Valor total {quantity > 1 ? `(${quantity}× peças)` : ''}
+                </p>
+                <p className="font-display text-2xl text-brand-mauve">{formatCurrency(valorTotal)}</p>
               </div>
             </div>
           )}
@@ -202,7 +240,7 @@ function NovaPecaContent() {
 
           <button type="submit" disabled={loading || !studentId || !name || !firingTypeId || volume === 0}
             className="w-full py-3 bg-brand-ink text-brand-cream rounded-xl font-medium text-sm disabled:opacity-50">
-            {loading ? 'Salvando...' : 'Cadastrar peça'}
+            {loading ? 'Salvando...' : 'Cadastrar queima'}
           </button>
         </form>
       </div>
@@ -210,10 +248,10 @@ function NovaPecaContent() {
   )
 }
 
-export default function NovaPecaPage() {
+export default function NovaQueimaPage() {
   return (
     <Suspense>
-      <NovaPecaContent />
+      <NovaQueimaContent />
     </Suspense>
   )
 }
