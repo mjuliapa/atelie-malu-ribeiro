@@ -21,18 +21,27 @@ export default function EditarPecaPage() {
   const [height, setHeight] = useState('')
   const [width, setWidth] = useState('')
   const [length, setLength] = useState('')
+  const [quantity, setQuantity] = useState(1)
   const [firingTypeId, setFiringTypeId] = useState('')
   const [notes, setNotes] = useState('')
   const [pieceDate, setPieceDate] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [isVendaLivre, setIsVendaLivre] = useState(false)
+  const [valorUnitario, setValorUnitario] = useState('')
 
   useEffect(() => {
     Promise.all([
       fetch(`/api/admin/pecas?id=${id}`).then(r => r.json()),
       fetch('/api/admin/form-data').then(r => r.json()),
     ]).then(([peca, formData]) => {
-      setName(peca.name)
+      // Detecta prefixo "Nx " no nome (ex: "3x Copo")
+      const match = peca.name.match(/^(\d+)x\s+(.+)$/)
+      const qty = match ? parseInt(match[1]) : 1
+      const cleanName = match ? match[2] : peca.name
+
+      setName(cleanName)
+      setQuantity(qty)
       setHeight(String(peca.height))
       setWidth(String(peca.width))
       setLength(String(peca.length))
@@ -41,6 +50,14 @@ export default function EditarPecaPage() {
       setPieceDate(peca.piece_date)
       setStudentName((peca.profiles as any)?.full_name ?? '')
       setFiringTypes(formData.firingTypes)
+
+      const tipoAtual = formData.firingTypes.find((f: FiringType) => f.id === peca.firing_type_id)
+      const vendaLivre = tipoAtual?.name === 'Venda livre (sem cálculo)'
+      setIsVendaLivre(vendaLivre)
+      if (vendaLivre) {
+        setValorUnitario(String(peca.calculated_value / qty))
+      }
+
       setLoading(false)
     })
   }, [id])
@@ -50,26 +67,40 @@ export default function EditarPecaPage() {
   const l = parseFloat(length) || 0
   const volume = h * w * l
   const selectedFiring = firingTypes.find(f => f.id === firingTypeId)
-  const valor = volume * (selectedFiring?.coefficient ?? 0)
+  const valorCalculado = isVendaLivre
+    ? (parseFloat(valorUnitario) || 0) * quantity
+    : volume * (selectedFiring?.coefficient ?? 0) * quantity
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
 
+    const finalName = quantity > 1 ? `${quantity}x ${name.trim()}` : name.trim()
+
+    const payload: any = {
+      name: finalName,
+      piece_date: pieceDate,
+      notes: notes.trim() || null,
+      calculated_value: valorCalculado,
+    }
+
+    if (isVendaLivre) {
+      payload.coefficient = valorCalculado
+      payload.height = 1
+      payload.width = 1
+      payload.length = 1
+    } else {
+      payload.height = h
+      payload.width = w
+      payload.length = l
+      payload.firing_type_id = firingTypeId
+      payload.coefficient = selectedFiring?.coefficient ?? 0
+    }
+
     const res = await fetch(`/api/admin/pecas?id=${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: name.trim(),
-        height: h,
-        width: w,
-        length: l,
-        firing_type_id: firingTypeId,
-        coefficient: selectedFiring?.coefficient ?? 0,
-        calculated_value: valor,
-        piece_date: pieceDate,
-        notes: notes.trim() || null,
-      }),
+      body: JSON.stringify(payload),
     })
 
     setSaving(false)
@@ -93,54 +124,78 @@ export default function EditarPecaPage() {
           </div>
 
           <div>
+            <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-1.5">Quantidade</label>
+            <div className="flex items-center gap-4">
+              <button type="button" onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                className="w-10 h-10 rounded-xl border border-brand-line bg-white text-brand-text text-lg font-medium hover:border-brand-mauve transition-colors">
+                −
+              </button>
+              <span className="font-display text-2xl text-brand-text min-w-[2rem] text-center">{quantity}</span>
+              <button type="button" onClick={() => setQuantity(q => q + 1)}
+                className="w-10 h-10 rounded-xl border border-brand-line bg-white text-brand-text text-lg font-medium hover:border-brand-mauve transition-colors">
+                +
+              </button>
+            </div>
+          </div>
+
+          <div>
             <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-1.5">Data</label>
             <input type="date" required value={pieceDate} onChange={e => setPieceDate(e.target.value)}
               className="w-full px-4 py-3 rounded-xl border border-brand-line bg-white text-brand-text focus:outline-none focus:border-brand-mauve" />
           </div>
 
-          <div>
-            <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-1.5">Dimensões (cm)</label>
-            <div className="grid grid-cols-3 gap-2">
-              {[
-                { label: 'Altura', value: height, set: setHeight },
-                { label: 'Largura', value: width, set: setWidth },
-                { label: 'Comprimento', value: length, set: setLength },
-              ].map(({ label, value, set }) => (
-                <div key={label}>
-                  <p className="text-[10px] text-brand-muted mb-1">{label}</p>
-                  <input type="number" min="0" step="0.1" value={value} onChange={e => set(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-brand-line bg-white text-brand-text text-center focus:outline-none focus:border-brand-mauve" />
+          {isVendaLivre ? (
+            <div>
+              <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-1.5">Valor unitário (R$)</label>
+              <input type="number" min="0" step="0.01" required value={valorUnitario} onChange={e => setValorUnitario(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-brand-line bg-white text-brand-text focus:outline-none focus:border-brand-mauve" />
+            </div>
+          ) : (
+            <>
+              <div>
+                <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-1.5">Dimensões (cm)</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { label: 'Altura', value: height, set: setHeight },
+                    { label: 'Largura', value: width, set: setWidth },
+                    { label: 'Comprimento', value: length, set: setLength },
+                  ].map(({ label, value, set }) => (
+                    <div key={label}>
+                      <p className="text-[10px] text-brand-muted mb-1">{label}</p>
+                      <input type="number" min="0" step="0.1" value={value} onChange={e => set(e.target.value)}
+                        className="w-full px-3 py-2.5 rounded-xl border border-brand-line bg-white text-brand-text text-center focus:outline-none focus:border-brand-mauve" />
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </div>
+              </div>
 
-          <div>
-            <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-2">Tipo de queima</label>
-            <div className="grid grid-cols-1 gap-2">
-              {firingTypes.map(f => (
-                <button key={f.id} type="button" onClick={() => setFiringTypeId(f.id)}
-                  className={cn(
-                    'px-4 py-3 rounded-xl border text-sm text-left transition-colors flex items-center justify-between',
-                    firingTypeId === f.id
-                      ? 'border-brand-mauve bg-brand-blush text-brand-mauve font-medium'
-                      : 'border-brand-line bg-white text-brand-text hover:border-brand-mauve'
-                  )}>
-                  <span>{f.name}</span>
-                  <span className={cn('text-xs', firingTypeId === f.id ? 'text-brand-mauve/70' : 'text-brand-muted')}>
-                    coef. {f.coefficient}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
+              <div>
+                <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-2">Tipo de queima</label>
+                <div className="grid grid-cols-1 gap-2">
+                  {firingTypes.filter(f => f.name !== 'Venda livre (sem cálculo)').map(f => (
+                    <button key={f.id} type="button" onClick={() => setFiringTypeId(f.id)}
+                      className={cn(
+                        'px-4 py-3 rounded-xl border text-sm text-left transition-colors flex items-center justify-between',
+                        firingTypeId === f.id
+                          ? 'border-brand-mauve bg-brand-blush text-brand-mauve font-medium'
+                          : 'border-brand-line bg-white text-brand-text hover:border-brand-mauve'
+                      )}>
+                      <span>{f.name}</span>
+                      <span className={cn('text-xs', firingTypeId === f.id ? 'text-brand-mauve/70' : 'text-brand-muted')}>
+                        coef. {f.coefficient}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
 
-          {volume > 0 && (
+          {valorCalculado > 0 && (
             <div className="bg-brand-blush rounded-xl p-4 space-y-2">
-              <p className="text-xs font-medium tracking-widest uppercase text-brand-mauve">Cálculo automático</p>
-              <div className="border-t border-brand-line pt-2 flex justify-between items-center">
-                <p className="text-sm text-brand-muted">Novo valor</p>
-                <p className="font-display text-2xl text-brand-mauve">{formatCurrency(valor)}</p>
+              <div className="flex justify-between items-center">
+                <p className="text-sm text-brand-muted">Novo valor total</p>
+                <p className="font-display text-2xl text-brand-mauve">{formatCurrency(valorCalculado)}</p>
               </div>
             </div>
           )}
@@ -151,7 +206,7 @@ export default function EditarPecaPage() {
               className="w-full px-4 py-3 rounded-xl border border-brand-line bg-white text-brand-text focus:outline-none focus:border-brand-mauve resize-none" />
           </div>
 
-          <button type="submit" disabled={saving || !name || !firingTypeId || volume === 0}
+          <button type="submit" disabled={saving || !name || (!isVendaLivre && !firingTypeId) || valorCalculado === 0}
             className="w-full py-3 bg-brand-ink text-brand-cream rounded-xl font-medium text-sm disabled:opacity-50">
             {saving ? 'Salvando...' : 'Salvar alterações'}
           </button>
