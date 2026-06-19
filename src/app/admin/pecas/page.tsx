@@ -18,13 +18,29 @@ export default function AdminPecasPage() {
   const [pecas, setPecas] = useState<Peca[]>([])
   const [filter, setFilter] = useState<'all' | 'open' | 'closed' | 'paid'>('all')
   const [loading, setLoading] = useState(true)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
-  useEffect(() => {
+  function load() {
     setLoading(true)
     fetch(`/api/admin/pecas?status=${filter}`)
       .then(r => r.json())
       .then(data => { setPecas(data); setLoading(false) })
-  }, [filter])
+  }
+
+  useEffect(() => { load() }, [filter])
+
+  async function handleDelete(id: string, name: string) {
+    if (!window.confirm(`Excluir "${name}"? Esta ação não pode ser desfeita.`)) return
+    setDeletingId(id)
+    const res = await fetch(`/api/admin/pecas?id=${id}`, { method: 'DELETE' })
+    setDeletingId(null)
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}))
+      alert(data.error ?? 'Não foi possível excluir.')
+      return
+    }
+    load()
+  }
 
   const statusLabel: Record<string, string> = { open: 'Em aberto', closed: 'Fechada', paid: 'Paga', cancelled: 'Cancelada' }
   const statusColor: Record<string, string> = {
@@ -84,6 +100,26 @@ export default function AdminPecasPage() {
                     {statusLabel[p.status]}
                   </span>
                 </div>
+                {p.status === 'open' && (
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <Link href={`/admin/pecas/${p.id}/editar`}
+                      className="p-2 rounded-lg text-brand-muted hover:text-brand-mauve hover:bg-brand-cream transition-colors"
+                      aria-label="Editar">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-4 h-4">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                      </svg>
+                    </Link>
+                    <button onClick={() => handleDelete(p.id, p.name)} disabled={deletingId === p.id}
+                      className="p-2 rounded-lg text-brand-muted hover:text-status-open-text hover:bg-status-open-bg transition-colors disabled:opacity-50"
+                      aria-label="Excluir">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-4 h-4">
+                        <polyline strokeLinecap="round" strokeLinejoin="round" points="3 6 5 6 21 6" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>
