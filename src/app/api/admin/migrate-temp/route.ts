@@ -105,5 +105,24 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ inserted: data?.length ?? 0, error: error?.message })
   }
 
+  if (action === 'add_quantity_column') {
+    // Testa se já existe tentando inserir um registro de teste e deletando
+    const { error: testError } = await supabase
+      .from('pieces')
+      .select('quantity')
+      .limit(1)
+
+    if (!testError) {
+      return NextResponse.json({ message: 'Coluna quantity já existe' })
+    }
+
+    // Coluna não existe — Supabase JS não tem ALTER TABLE direto,
+    // precisa do SQL via RPC. Como não temos exec_sql, retornamos
+    // instrução manual.
+    return NextResponse.json({
+      error: 'Coluna quantity não existe. Precisa rodar SQL manualmente quando o dashboard voltar: ALTER TABLE pieces ADD COLUMN IF NOT EXISTS quantity integer NOT NULL DEFAULT 1;'
+    })
+  }
+  
   return NextResponse.json({ error: 'action inválida' }, { status: 400 })
 }
