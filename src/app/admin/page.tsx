@@ -27,9 +27,9 @@ export default async function AdminDashboardPage() {
       .eq('role', 'student').eq('status', 'active'),
   ])
 
-  const pecaOpen   = (pecas ?? []).filter(p => p.status === 'open').reduce((s, p) => s + p.calculated_value, 0)
-  const pecaClosed = (pecas ?? []).filter(p => p.status === 'closed').reduce((s, p) => s + p.calculated_value, 0)
-  const pecaPaid   = (pecas ?? []).filter(p => p.status === 'paid').reduce((s, p) => s + p.calculated_value, 0)
+  const queimaOpen   = (pecas ?? []).filter(p => p.status === 'open').reduce((s, p) => s + p.calculated_value, 0)
+  const queimaClosed = (pecas ?? []).filter(p => p.status === 'closed').reduce((s, p) => s + p.calculated_value, 0)
+  const queimaPaid   = (pecas ?? []).filter(p => p.status === 'paid').reduce((s, p) => s + p.calculated_value, 0)
 
   const argilaOpen   = (argilas ?? []).filter(a => a.status === 'open').reduce((s, a) => s + a.total_value, 0)
   const argilaClosed = (argilas ?? []).filter(a => a.status === 'closed').reduce((s, a) => s + a.total_value, 0)
@@ -55,21 +55,21 @@ export default async function AdminDashboardPage() {
 
         <Link href="/admin/pecas" className="block bg-white rounded-xl shadow-card p-4 space-y-3">
           <div className="flex items-center gap-2">
-            <span className="text-base">🏺</span>
-            <p className="text-xs font-medium tracking-widest uppercase text-brand-muted">Peças</p>
+            <span className="text-base">🔥</span>
+            <p className="text-xs font-medium tracking-widest uppercase text-brand-muted">Queima</p>
           </div>
           <div className="grid grid-cols-3 gap-2">
             <div>
               <p className="text-[10px] text-brand-muted mb-0.5">Em aberto</p>
-              <p className="font-display text-sm text-status-open-text">{formatCurrency(pecaOpen)}</p>
+              <p className="font-display text-sm text-status-open-text">{formatCurrency(queimaOpen)}</p>
             </div>
             <div>
               <p className="text-[10px] text-brand-muted mb-0.5">Aguardando</p>
-              <p className="font-display text-sm text-status-closed-text">{formatCurrency(pecaClosed)}</p>
+              <p className="font-display text-sm text-status-closed-text">{formatCurrency(queimaClosed)}</p>
             </div>
             <div>
               <p className="text-[10px] text-brand-muted mb-0.5">Pagas</p>
-              <p className="font-display text-sm text-status-paid-text">{formatCurrency(pecaPaid)}</p>
+              <p className="font-display text-sm text-status-paid-text">{formatCurrency(queimaPaid)}</p>
             </div>
           </div>
         </Link>
@@ -97,8 +97,8 @@ export default async function AdminDashboardPage() {
 
         <Link href="/admin/fechamentos/pacote" className="block bg-white rounded-xl shadow-card p-4 space-y-3">
           <div className="flex items-center gap-2">
-            <span className="text-base">🖊️</span>
-            <p className="text-xs font-medium tracking-widest uppercase text-brand-muted">Pacotes</p>
+            <span className="text-base">🎓</span>
+            <p className="text-xs font-medium tracking-widest uppercase text-brand-muted">Aula (Pacote)</p>
           </div>
           <div className="grid grid-cols-3 gap-2">
             <div>
@@ -155,19 +155,19 @@ export default async function AdminDashboardPage() {
           <div className="grid grid-cols-2 gap-2">
             <Link href="/admin/pecas/nova"
               className="flex items-center justify-center gap-2 bg-brand-ink text-brand-cream px-4 py-3 rounded-xl text-sm font-medium">
-              🏺 Nova peça
+              🔥 Nova queima
             </Link>
             <Link href="/admin/argila/nova"
               className="flex items-center justify-center gap-2 bg-white text-brand-text border border-brand-line px-4 py-3 rounded-xl text-sm font-medium">
               🪨 Nova argila
             </Link>
+            <Link href="/admin/financeiro/pecas-avulsas/nova"
+              className="flex items-center justify-center gap-2 bg-white text-brand-text border border-brand-line px-4 py-3 rounded-xl text-sm font-medium">
+              💎 Nova peça
+            </Link>
             <Link href="/admin/fechamentos/pacote"
               className="flex items-center justify-center gap-2 bg-white text-brand-text border border-brand-line px-4 py-3 rounded-xl text-sm font-medium">
-              🖊️ Novo pacote
-            </Link>
-            <Link href="/admin/fechamentos/novo"
-              className="flex items-center justify-center gap-2 bg-white text-brand-text border border-brand-line px-4 py-3 rounded-xl text-sm font-medium">
-              📋 Gerar fechamento
+              🎓 Novo pacote
             </Link>
           </div>
         </div>

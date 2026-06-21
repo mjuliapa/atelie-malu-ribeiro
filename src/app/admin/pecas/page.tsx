@@ -52,15 +52,15 @@ export default function AdminPecasPage() {
 
   return (
     <>
-      <AdminNavHeader title="Peças" />
+      <AdminNavHeader title="Queima" />
       <div className="px-4 pt-4 pb-6 space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="font-display text-2xl text-brand-text">Peças</h1>
+            <h1 className="font-display text-2xl text-brand-text">Queima</h1>
             <p className="text-sm text-brand-muted">{pecas.length} encontradas</p>
           </div>
           <Link href="/admin/pecas/nova" className="bg-brand-ink text-brand-cream px-4 py-2 rounded-xl text-sm font-medium">
-            + Nova peça
+            + Nova queima
           </Link>
         </div>
 
@@ -81,8 +81,8 @@ export default function AdminPecasPage() {
           </div>
         ) : pecas.length === 0 ? (
           <div className="bg-white rounded-xl p-8 text-center shadow-card">
-            <p className="font-display text-base text-brand-text mb-1">Nenhuma peça encontrada</p>
-            <Link href="/admin/pecas/nova" className="text-sm text-brand-mauve hover:underline">Cadastrar primeira peça</Link>
+            <p className="font-display text-base text-brand-text mb-1">Nenhuma queima encontrada</p>
+            <Link href="/admin/pecas/nova" className="text-sm text-brand-mauve hover:underline">Cadastrar primeira queima</Link>
           </div>
         ) : (
           <div className="bg-white rounded-xl shadow-card divide-y divide-brand-line">
