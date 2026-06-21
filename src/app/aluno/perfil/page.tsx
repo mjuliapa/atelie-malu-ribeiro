@@ -2,6 +2,17 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { formatDate } from '@/lib/utils'
+
+type AttendanceItem = {
+  id: string
+  status: string
+  recorded_at: string
+  appointments: {
+    slot_id: string
+    schedule_slots: { start_time: string } | null
+  } | null
+}
 
 export default function AlunoPerfilPage() {
   const [fullName, setFullName] = useState('')
@@ -9,6 +20,8 @@ export default function AlunoPerfilPage() {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [attendance, setAttendance] = useState<AttendanceItem[]>([])
+  const [loadingAttendance, setLoadingAttendance] = useState(true)
   const supabase = createClient()
 
   useEffect(() => {
@@ -27,6 +40,11 @@ export default function AlunoPerfilPage() {
         setFullName(profile.full_name ?? '')
         setPhone(fmt(profile.phone ?? ''))
       }
+
+      const res = await fetch(`/api/admin/attendance?student_id=${user.id}`)
+      const data = await res.json()
+      setAttendance(Array.isArray(data) ? data : [])
+      setLoadingAttendance(false)
     }
     load()
   }, [])
@@ -52,8 +70,17 @@ export default function AlunoPerfilPage() {
     setTimeout(() => setSaved(false), 2000)
   }
 
+  const statusLabel: Record<string, string> = {
+    present: 'Presente', absent: 'Falta', justified: 'Justificada',
+  }
+  const statusColor: Record<string, string> = {
+    present: 'bg-status-paid-bg text-status-paid-text',
+    absent: 'bg-status-open-bg text-status-open-text',
+    justified: 'bg-status-closed-bg text-status-closed-text',
+  }
+
   return (
-    <div className="px-4 pb-4">
+    <div className="px-4 pb-4 space-y-4">
       {/* Card único grande */}
       <div className="bg-white rounded-2xl shadow-card px-6 pt-8 pb-6">
 
@@ -93,6 +120,34 @@ export default function AlunoPerfilPage() {
             </button>
           </div>
         </form>
+      </div>
+
+      {/* Histórico de presença */}
+      <div className="bg-white rounded-2xl shadow-card px-6 py-6">
+        <h2 className="font-display text-lg text-brand-text mb-4">Histórico de presença</h2>
+
+        {loadingAttendance ? (
+          <div className="space-y-2">
+            {[1,2,3].map(i => <div key={i} className="h-12 bg-brand-cream rounded-xl animate-pulse" />)}
+          </div>
+        ) : attendance.length === 0 ? (
+          <p className="text-sm text-brand-muted text-center py-4">Nenhum registro de presença ainda.</p>
+        ) : (
+          <div className="space-y-2">
+            {attendance.map(a => (
+              <div key={a.id} className="flex items-center justify-between py-2 border-b border-brand-line last:border-0">
+                <p className="text-sm text-brand-text">
+                  {a.appointments?.schedule_slots?.start_time
+                    ? formatDate(a.appointments.schedule_slots.start_time, "d 'de' MMMM 'de' yyyy")
+                    : formatDate(a.recorded_at, "d 'de' MMMM 'de' yyyy")}
+                </p>
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${statusColor[a.status] ?? ''}`}>
+                  {statusLabel[a.status] ?? a.status}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
