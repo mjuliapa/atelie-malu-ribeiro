@@ -26,13 +26,22 @@ export default async function AlunaDetailPage({ params }: { params: Promise<{ id
     admin.from('package_charges').select('*').eq('student_id', id).order('created_at', { ascending: false }),
   ])
 
+  const isVendaLivre = (p: any) => (p.firing_types as any)?.name === 'Venda livre (sem cálculo)'
+  const queimas = (pecas ?? []).filter(p => !isVendaLivre(p))
+  const pecasAvulsas = (pecas ?? []).filter(p => isVendaLivre(p))
+
   const credits = aluna.credits ?? 0
+  const isNegative = credits < 0
   const packageType = aluna.package_type ?? 'manual'
   const packageValue = packageType === 'torno' ? 460 : 420
 
-  const totalPecasAberto = (pecas ?? []).filter(p => p.status === 'open').reduce((s, p) => s + p.calculated_value, 0)
-  const totalPecasFechado = (pecas ?? []).filter(p => p.status === 'closed').reduce((s, p) => s + p.calculated_value, 0)
-  const totalPecasPago = (pecas ?? []).filter(p => p.status === 'paid').reduce((s, p) => s + p.calculated_value, 0)
+  const totalQueimaAberto = queimas.filter(p => p.status === 'open').reduce((s, p) => s + p.calculated_value, 0)
+  const totalQueimaFechado = queimas.filter(p => p.status === 'closed').reduce((s, p) => s + p.calculated_value, 0)
+  const totalQueimaPago = queimas.filter(p => p.status === 'paid').reduce((s, p) => s + p.calculated_value, 0)
+
+  const totalPecaAberto = pecasAvulsas.filter(p => p.status === 'open').reduce((s, p) => s + p.calculated_value, 0)
+  const totalPecaFechado = pecasAvulsas.filter(p => p.status === 'closed').reduce((s, p) => s + p.calculated_value, 0)
+  const totalPecaPago = pecasAvulsas.filter(p => p.status === 'paid').reduce((s, p) => s + p.calculated_value, 0)
 
   const totalArgilaAberto = (argilas ?? []).filter(a => a.status === 'open').reduce((s, a) => s + a.total_value, 0)
   const totalArgilaFechado = (argilas ?? []).filter(a => a.status === 'closed').reduce((s, a) => s + a.total_value, 0)
@@ -41,9 +50,9 @@ export default async function AlunaDetailPage({ params }: { params: Promise<{ id
   const totalPacoteAberto = (packageCharges ?? []).filter(c => c.status === 'awaiting_payment').reduce((s, c) => s + c.value, 0)
   const totalPacotePago = (packageCharges ?? []).filter(c => c.status === 'paid').reduce((s, c) => s + c.value, 0)
 
-  const totalAberto = totalPecasAberto + totalArgilaAberto + totalPacoteAberto
-  const totalFechado = totalPecasFechado + totalArgilaFechado
-  const totalPago = totalPecasPago + totalArgilaPago + totalPacotePago
+  const totalAberto = totalQueimaAberto + totalPecaAberto + totalArgilaAberto + totalPacoteAberto
+  const totalFechado = totalQueimaFechado + totalPecaFechado + totalArgilaFechado
+  const totalPago = totalQueimaPago + totalPecaPago + totalArgilaPago + totalPacotePago
 
   const statusLabel: Record<string, string> = { open: 'Em aberto', closed: 'Fechada', paid: 'Paga', cancelled: 'Cancelada' }
   const statusColor: Record<string, string> = {
@@ -69,14 +78,14 @@ export default async function AlunaDetailPage({ params }: { params: Promise<{ id
           <AlunaStatusToggle id={id} currentStatus={aluna.status ?? 'active'} />
         </div>
 
-        {/* Creditos */}
-        <div className={`rounded-xl p-4 flex items-center justify-between ${credits > 0 ? 'bg-status-paid-bg' : 'bg-status-open-bg'}`}>
+        {/* Créditos */}
+        <div className={`rounded-xl p-4 flex items-center justify-between ${isNegative ? 'bg-status-open-bg' : credits > 0 ? 'bg-status-paid-bg' : 'bg-status-open-bg'}`}>
           <div>
-            <p className={`text-xs mb-0.5 ${credits > 0 ? 'text-status-paid-text' : 'text-status-open-text'}`}>
-              Creditos de aula · pacote {packageType}
+            <p className={`text-xs mb-0.5 ${isNegative || credits === 0 ? 'text-status-open-text' : 'text-status-paid-text'}`}>
+              Créditos de aula · pacote {packageType}
             </p>
-            <p className={`font-display text-2xl ${credits > 0 ? 'text-status-paid-text' : 'text-status-open-text'}`}>
-              {credits} credito{credits !== 1 ? 's' : ''}
+            <p className={`font-display text-2xl ${isNegative || credits === 0 ? 'text-status-open-text' : 'text-status-paid-text'}`}>
+              {credits} {isNegative ? '(devendo)' : `crédito${credits !== 1 ? 's' : ''}`}
             </p>
           </div>
           <Link href={`/admin/alunos/${id}/creditos`}
@@ -85,55 +94,103 @@ export default async function AlunaDetailPage({ params }: { params: Promise<{ id
           </Link>
         </div>
 
-        {credits === 0 && (
+        {(credits <= 0) && (
           <Link href={`/admin/fechamentos/pacote?aluna=${id}&tipo=${packageType}`}
             className="block bg-brand-blush rounded-xl p-4 text-center">
-            <p className="text-sm font-medium text-brand-mauve">+ Gerar cobranca de pacote</p>
+            <p className="text-sm font-medium text-brand-mauve">+ Gerar cobrança de pacote</p>
             <p className="text-xs text-brand-mauve/70">{formatCurrency(packageValue)} · 4 aulas</p>
           </Link>
         )}
 
-        {/* Resumo financeiro */}
-        <div className="bg-white rounded-xl shadow-card p-4 space-y-3">
+        {/* Resumo financeiro separado por categoria */}
+        <div className="bg-white rounded-xl shadow-card p-4 space-y-4">
           <p className="text-xs font-medium tracking-widest uppercase text-brand-muted">Resumo financeiro</p>
-          <div className="grid grid-cols-3 gap-2">
+
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-brand-text">🔥 Queima</p>
+              <div className="flex gap-3 text-xs">
+                <span className="text-status-open-text">{formatCurrency(totalQueimaAberto)}</span>
+                <span className="text-status-paid-text">{formatCurrency(totalQueimaPago)}</span>
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-brand-text">🪨 Argila</p>
+              <div className="flex gap-3 text-xs">
+                <span className="text-status-open-text">{formatCurrency(totalArgilaAberto)}</span>
+                <span className="text-status-paid-text">{formatCurrency(totalArgilaPago)}</span>
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-brand-text">💎 Peça</p>
+              <div className="flex gap-3 text-xs">
+                <span className="text-status-open-text">{formatCurrency(totalPecaAberto)}</span>
+                <span className="text-status-paid-text">{formatCurrency(totalPecaPago)}</span>
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-brand-text">🎓 Aula (pacote)</p>
+              <div className="flex gap-3 text-xs">
+                <span className="text-status-open-text">{formatCurrency(totalPacoteAberto)}</span>
+                <span className="text-status-paid-text">{formatCurrency(totalPacotePago)}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 text-[10px] text-brand-muted border-t border-brand-line pt-2">
+            <span>● Em aberto</span>
+            <span>● Pago</span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 border-t border-brand-line pt-3">
             <div>
-              <p className="text-[10px] text-brand-muted mb-0.5">Em aberto</p>
-              <p className="font-display text-sm text-status-open-text">{formatCurrency(totalAberto)}</p>
+              <p className="text-[10px] text-brand-muted mb-0.5">Total em aberto</p>
+              <p className="font-display text-base text-status-open-text">{formatCurrency(totalAberto)}</p>
             </div>
             <div>
-              <p className="text-[10px] text-brand-muted mb-0.5">Fechado</p>
-              <p className="font-display text-sm text-status-closed-text">{formatCurrency(totalFechado)}</p>
-            </div>
-            <div>
-              <p className="text-[10px] text-brand-muted mb-0.5">Pago</p>
-              <p className="font-display text-sm text-status-paid-text">{formatCurrency(totalPago)}</p>
+              <p className="text-[10px] text-brand-muted mb-0.5">Total pago</p>
+              <p className="font-display text-base text-status-paid-text">{formatCurrency(totalPago)}</p>
             </div>
           </div>
         </div>
 
-        {/* Acoes */}
-        <div className="grid grid-cols-2 gap-2">
-          <Link href={`/admin/pecas/nova?aluna=${id}`}
-            className="flex items-center justify-center gap-2 bg-brand-ink text-brand-cream px-4 py-3 rounded-xl text-sm font-medium">
-            + Nova peca
-          </Link>
+        {/* Ações — criar novo item por categoria */}
+        <div className="space-y-2">
+          <h2 className="font-display text-base text-brand-text">Adicionar</h2>
+          <div className="grid grid-cols-2 gap-2">
+            <Link href={`/admin/pecas/nova?aluna=${id}`}
+              className="flex items-center justify-center gap-2 bg-white text-brand-text border border-brand-line px-4 py-3 rounded-xl text-sm font-medium">
+              🔥 Queima
+            </Link>
+            <Link href={`/admin/argila/nova?aluna=${id}`}
+              className="flex items-center justify-center gap-2 bg-white text-brand-text border border-brand-line px-4 py-3 rounded-xl text-sm font-medium">
+              🪨 Argila
+            </Link>
+            <Link href={`/admin/financeiro/pecas-avulsas/nova?aluna=${id}`}
+              className="flex items-center justify-center gap-2 bg-white text-brand-text border border-brand-line px-4 py-3 rounded-xl text-sm font-medium">
+              💎 Peça
+            </Link>
+            <Link href={`/admin/fechamentos/pacote?aluna=${id}`}
+              className="flex items-center justify-center gap-2 bg-white text-brand-text border border-brand-line px-4 py-3 rounded-xl text-sm font-medium">
+              🎓 Aula (pacote)
+            </Link>
+          </div>
           <Link href={`/admin/fechamentos/novo?aluna=${id}`}
-            className="flex items-center justify-center gap-2 bg-white text-brand-text border border-brand-line px-4 py-3 rounded-xl text-sm font-medium">
-            Fechamento
+            className="flex items-center justify-center gap-2 bg-brand-ink text-brand-cream px-4 py-3 rounded-xl text-sm font-medium">
+            📋 Gerar fechamento
           </Link>
         </div>
 
-        {/* Pecas */}
+        {/* Queima */}
         <div className="space-y-2">
-          <h2 className="font-display text-base text-brand-text">Pecas</h2>
-          {!pecas?.length ? (
+          <h2 className="font-display text-base text-brand-text">Queima</h2>
+          {!queimas.length ? (
             <div className="bg-white rounded-xl p-6 text-center shadow-card">
-              <p className="text-sm text-brand-muted">Nenhuma peca cadastrada.</p>
+              <p className="text-sm text-brand-muted">Nenhuma queima cadastrada.</p>
             </div>
           ) : (
             <div className="bg-white rounded-xl shadow-card divide-y divide-brand-line">
-              {pecas.map(p => (
+              {queimas.map(p => (
                 <div key={p.id} className="flex items-center gap-3 px-4 py-3">
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-brand-text truncate">{p.name}</p>
@@ -150,6 +207,29 @@ export default async function AlunaDetailPage({ params }: { params: Promise<{ id
             </div>
           )}
         </div>
+
+        {/* Peças avulsas */}
+        {pecasAvulsas.length > 0 && (
+          <div className="space-y-2">
+            <h2 className="font-display text-base text-brand-text">Peças</h2>
+            <div className="bg-white rounded-xl shadow-card divide-y divide-brand-line">
+              {pecasAvulsas.map(p => (
+                <div key={p.id} className="flex items-center gap-3 px-4 py-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-brand-text truncate">{p.name}</p>
+                    <p className="text-xs text-brand-muted">{formatDate(p.piece_date)}</p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <p className="text-sm font-medium text-brand-text">{formatCurrency(p.calculated_value)}</p>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${statusColor[p.status]}`}>
+                      {statusLabel[p.status]}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Argila */}
         {argilas && argilas.length > 0 && (
@@ -177,7 +257,7 @@ export default async function AlunaDetailPage({ params }: { params: Promise<{ id
         {/* Pacotes */}
         {packageCharges && packageCharges.length > 0 && (
           <div className="space-y-2">
-            <h2 className="font-display text-base text-brand-text">Pacotes</h2>
+            <h2 className="font-display text-base text-brand-text">Aula (pacotes)</h2>
             <div className="bg-white rounded-xl shadow-card divide-y divide-brand-line">
               {packageCharges.map(c => (
                 <div key={c.id} className="flex items-center justify-between px-4 py-3">
