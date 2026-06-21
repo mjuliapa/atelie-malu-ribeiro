@@ -6,6 +6,7 @@ import { formatSlotTime, formatDate, cn } from '@/lib/utils'
 import { parseISO, isPast, isToday } from 'date-fns'
 import { useParams, useRouter } from 'next/navigation'
 import { AttendanceModal } from '@/components/admin/AttendanceModal'
+import { AddAlunaToSlot } from '@/components/admin/AddAlunaToSlot'
 
 type AttendanceRecord = {
   id: string
@@ -81,7 +82,21 @@ export default function SlotPage() {
     router.back()
   }
 
-  // normaliza attendance — pode vir como array ou objeto dependendo do Supabase
+  async function handleRemoveAluna(appointmentId: string, nome: string) {
+    if (!confirm(`Remover ${nome} desta aula? O crédito será devolvido.`)) return
+    await fetch('/api/admin/appointments', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: appointmentId,
+        status: 'cancelled',
+        cancelled_at: new Date().toISOString(),
+      }),
+    })
+    // Devolve crédito manualmente já que esse fluxo de PATCH por id não trata restore_credit
+    await load()
+  }
+
   function getAttendance(a: Appointment): AttendanceRecord | null {
     if (!a.attendance) return null
     if (Array.isArray(a.attendance)) return a.attendance[0] ?? null
@@ -95,6 +110,7 @@ export default function SlotPage() {
   const slotDate = parseISO(slot.start_time)
   const isPastSlot = isPast(slotDate)
   const isSlotToday = isToday(slotDate)
+  const hasVagas = confirmed.length < slot.max_students
 
   return (
     <>
@@ -146,12 +162,26 @@ export default function SlotPage() {
                         : 'bg-brand-cream text-brand-muted')}>
                       {att ? (attended ? '✓ Presente' : absent ? 'Falta' : 'Justificada') : 'Sem registro'}
                     </span>
+                    {!isPastSlot && (
+                      <button onClick={() => handleRemoveAluna(a.id, a.profiles?.full_name ?? 'aluna')}
+                        className="p-1.5 text-brand-muted hover:text-status-open-text transition-colors"
+                        aria-label="Remover">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-4 h-4">
+                          <line x1="18" y1="6" x2="6" y2="18" strokeLinecap="round" />
+                          <line x1="6" y1="6" x2="18" y2="18" strokeLinecap="round" />
+                        </svg>
+                      </button>
+                    )}
                   </div>
                 )
               })}
             </div>
           )}
         </div>
+
+        {hasVagas && !slot.is_blocked && !isPastSlot && (
+          <AddAlunaToSlot slotId={slot.id} onAdded={load} />
+        )}
 
         {(isPastSlot || isSlotToday) && !slot.is_blocked && confirmed.length > 0 && (
           <button onClick={() => setShowAttendance(true)}

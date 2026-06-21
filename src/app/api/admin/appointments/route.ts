@@ -30,7 +30,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Sem vagas no torno' }, { status: 400 })
   }
 
-  // Permite agendar mesmo sem crédito — fica negativo (controle de débito)
   const { data: existing } = await supabase
     .from('appointments')
     .select('id, status')
@@ -75,7 +74,6 @@ export async function POST(request: NextRequest) {
     .single()
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
 
-  // Desconta crédito SEMPRE (pode ficar negativo) — sem bloquear, sem checar > 0
   const { data: profile } = await supabase
     .from('profiles')
     .select('credits')
@@ -95,6 +93,7 @@ export async function PATCH(request: NextRequest) {
   const { id, slot_id, student_id, restore_credit, ...update } = body
   const supabase = getSupabase()
 
+  // Cancelamento por slot_id + student_id (fluxo da aluna)
   if (slot_id && student_id) {
     const { data: appt } = await supabase
       .from('appointments')
@@ -126,7 +125,30 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ ok: true })
   }
 
-  const { error } = await supabase.from('appointments').update(update).eq('id', id)
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
-  return NextResponse.json({ ok: true })
+  // Atualização por id (fluxo admin) — usado para remover aluna de uma aula
+  // Se o status for alterado para 'cancelled', devolve 1 crédito automaticamente
+  if (id) {
+    const { data: apptAtual } = await supabase
+      .from('appointments')
+      .select('student_id, status')
+      .eq('id', id)
+      .single()
+
+    const { error } = await supabase.from('appointments').update(update).eq('id', id)
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+
+    if (update.status === 'cancelled' && apptAtual && apptAtual.status === 'confirmed') {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('credits')
+        .eq('id', apptAtual.student_id)
+        .single()
+      const current = profile?.credits ?? 0
+      await supabase.from('profiles').update({ credits: current + 1 }).eq('id', apptAtual.student_id)
+    }
+
+    return NextResponse.json({ ok: true })
+  }
+
+  return NextResponse.json({ error: 'id ou slot_id+student_id obrigatórios' }, { status: 400 })
 }
