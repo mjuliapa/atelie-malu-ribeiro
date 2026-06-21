@@ -18,6 +18,7 @@ export default function AlunoAgendaPage() {
   const [slots, setSlots] = useState<ScheduleSlot[]>([])
   const [myAppointments, setMyAppointments] = useState<Set<string>>(new Set())
   const [userId, setUserId] = useState<string | null>(null)
+  const [credits, setCredits] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [selectedSlot, setSelectedSlot] = useState<ScheduleSlot | null>(null)
   const [showConfirm, setShowConfirm] = useState(false)
@@ -39,9 +40,14 @@ export default function AlunoAgendaPage() {
     const from = format(startOfDay(new Date()), 'yyyy-MM-dd')
     const to = format(addDays(new Date(), MAX_DAYS_AHEAD), 'yyyy-MM-dd')
 
-    // Busca via API route (service role) — vê appointments de TODAS as alunas
-    const res = await fetch(`/api/admin/slots?from=${from}&to=${to}`)
-    const slotsData: any[] = await res.json()
+    const [slotsRes, formDataRes] = await Promise.all([
+      fetch(`/api/admin/slots?from=${from}&to=${to}`),
+      fetch('/api/admin/form-data'),
+    ])
+    const slotsData: any[] = await slotsRes.json()
+    const formData = await formDataRes.json()
+    const me = formData?.students?.find((s: any) => s.id === user.id)
+    setCredits(me?.credits ?? 0)
 
     if (slotsData) {
       const enriched = slotsData
@@ -107,6 +113,15 @@ export default function AlunoAgendaPage() {
         <h1 className="font-display text-2xl text-brand-text">Agenda</h1>
         <p className="text-sm text-brand-muted">Escolha um dia para ver os horários disponíveis.</p>
       </div>
+
+      {credits !== null && credits < 0 && (
+        <div className="bg-status-open-bg rounded-xl p-3 flex items-center gap-2">
+          <span className="text-base">⚠️</span>
+          <p className="text-xs text-status-open-text">
+            Você está devendo <strong>{Math.abs(credits)} aula{Math.abs(credits) !== 1 ? 's' : ''}</strong> — fale com a Malu para regularizar seu pacote.
+          </p>
+        </div>
+      )}
 
       <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
         {availableDays.map((day) => {
