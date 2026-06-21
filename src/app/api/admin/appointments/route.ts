@@ -13,7 +13,6 @@ export async function POST(request: NextRequest) {
   const body = await request.json()
   const supabase = getSupabase()
 
-  // verifica vaga
   const { data: slot } = await supabase
     .from('schedule_slots')
     .select('max_students, torno_spots, appointments(id, status, modality)')
@@ -31,8 +30,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Sem vagas no torno' }, { status: 400 })
   }
 
-  // ✅ FIX Bug 3: verifica se existe appointment cancelado para o mesmo slot+aluna
-  // Se sim, faz UPDATE para confirmed em vez de INSERT (evita unique constraint)
+  // Permite agendar mesmo sem crédito — fica negativo (controle de débito)
   const { data: existing } = await supabase
     .from('appointments')
     .select('id, status')
@@ -44,7 +42,6 @@ export async function POST(request: NextRequest) {
     if (existing.status === 'confirmed') {
       return NextResponse.json({ error: 'Já agendada' }, { status: 400 })
     }
-    // estava cancelado — reativa
     const { data, error } = await supabase
       .from('appointments')
       .update({
@@ -57,22 +54,20 @@ export async function POST(request: NextRequest) {
       .single()
     if (error) return NextResponse.json({ error: error.message }, { status: 400 })
 
-    // desconta 1 crédito
     const { data: profile } = await supabase
       .from('profiles')
       .select('credits')
       .eq('id', body.student_id)
       .single()
-    if (profile && profile.credits > 0) {
+    if (profile) {
       await supabase.from('profiles')
-        .update({ credits: profile.credits - 1 })
+        .update({ credits: (profile.credits ?? 0) - 1 })
         .eq('id', body.student_id)
     }
 
     return NextResponse.json(data)
   }
 
-  // não existe — INSERT normal
   const { data, error } = await supabase
     .from('appointments')
     .insert(body)
@@ -80,15 +75,15 @@ export async function POST(request: NextRequest) {
     .single()
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
 
-  // desconta 1 crédito
+  // Desconta crédito SEMPRE (pode ficar negativo) — sem bloquear, sem checar > 0
   const { data: profile } = await supabase
     .from('profiles')
     .select('credits')
     .eq('id', body.student_id)
     .single()
-  if (profile && profile.credits > 0) {
+  if (profile) {
     await supabase.from('profiles')
-      .update({ credits: profile.credits - 1 })
+      .update({ credits: (profile.credits ?? 0) - 1 })
       .eq('id', body.student_id)
   }
 
@@ -100,7 +95,6 @@ export async function PATCH(request: NextRequest) {
   const { id, slot_id, student_id, restore_credit, ...update } = body
   const supabase = getSupabase()
 
-  // cancelamento por slot_id + student_id (fluxo da aluna)
   if (slot_id && student_id) {
     const { data: appt } = await supabase
       .from('appointments')
@@ -119,7 +113,6 @@ export async function PATCH(request: NextRequest) {
 
     if (error) return NextResponse.json({ error: error.message }, { status: 400 })
 
-    // devolve crédito
     if (restore_credit) {
       const { data: profile } = await supabase
         .from('profiles')
@@ -133,7 +126,6 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ ok: true })
   }
 
-  // atualização por id (fluxo admin)
   const { error } = await supabase.from('appointments').update(update).eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
   return NextResponse.json({ ok: true })
