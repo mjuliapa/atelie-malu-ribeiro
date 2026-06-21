@@ -6,7 +6,7 @@ import { AdminNavHeader } from '@/components/admin/AdminNav'
 import { formatCurrency } from '@/lib/utils'
 import { useRouter, useSearchParams } from 'next/navigation'
 
-const PRECOS = { manual: 420, torno: 460 }
+const PRECO_AULA = { manual: 105, torno: 115 } // valor unitário por aula
 
 function PacoteContent() {
   const router = useRouter()
@@ -18,6 +18,7 @@ function PacoteContent() {
   const [students, setStudents] = useState<{id: string, full_name: string}[]>([])
   const [selectedAlunaId, setSelectedAlunaId] = useState(alunaId)
   const [tipo, setTipo] = useState<'manual' | 'torno'>(tipoParam)
+  const [credits, setCredits] = useState(4)
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -32,6 +33,8 @@ function PacoteContent() {
       })
   }, [alunaId])
 
+  const valorTotal = credits * PRECO_AULA[tipo]
+
   async function handleSave() {
     if (!selectedAlunaId) return
     setSaving(true)
@@ -39,16 +42,14 @@ function PacoteContent() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { setSaving(false); return }
 
-    // IMPORTANTE: NÃO soma crédito aqui. Crédito só é somado quando o
-    // fechamento for marcado como PAGO (em /api/admin/fechamentos PATCH).
     await fetch('/api/admin/package-charges', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         student_id: selectedAlunaId,
         package_type: tipo,
-        credits: 4,
-        value: PRECOS[tipo],
+        credits,
+        value: valorTotal,
         status: 'awaiting_payment',
         created_by: user.id,
       }),
@@ -92,16 +93,42 @@ function PacoteContent() {
           </div>
         </div>
 
+        <div>
+          <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-1.5">Quantidade de aulas</label>
+          <div className="flex items-center gap-4">
+            <button type="button" onClick={() => setCredits(c => Math.max(2, c - 1))}
+              className="w-10 h-10 rounded-xl border border-brand-line bg-white text-brand-text text-lg font-medium hover:border-brand-mauve transition-colors">
+              −
+            </button>
+            <span className="font-display text-2xl text-brand-text min-w-[2rem] text-center">{credits}</span>
+            <button type="button" onClick={() => setCredits(c => c + 1)}
+              className="w-10 h-10 rounded-xl border border-brand-line bg-white text-brand-text text-lg font-medium hover:border-brand-mauve transition-colors">
+              +
+            </button>
+            <span className="text-xs text-brand-muted">mínimo 2 aulas</span>
+          </div>
+          <div className="flex gap-2 mt-2">
+            {[2, 4, 8, 12].map(n => (
+              <button key={n} type="button" onClick={() => setCredits(n)}
+                className="px-3 py-1.5 rounded-lg border border-brand-line bg-white text-xs text-brand-muted hover:border-brand-mauve transition-colors">
+                {n}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="bg-brand-blush rounded-xl p-4 space-y-1">
           <p className="text-xs text-brand-mauve">Resumo da cobrança</p>
           <div className="flex justify-between items-center">
-            <p className="text-sm text-brand-mauve">4 aulas — pacote {tipo}</p>
-            <p className="font-display text-2xl text-brand-mauve">{formatCurrency(PRECOS[tipo])}</p>
+            <p className="text-sm text-brand-mauve">{credits} aula{credits !== 1 ? 's' : ''} — pacote {tipo}</p>
+            <p className="font-display text-2xl text-brand-mauve">{formatCurrency(valorTotal)}</p>
           </div>
-          <p className="text-xs text-brand-mauve/70">Créditos liberados após confirmação do pagamento</p>
+          <p className="text-xs text-brand-mauve/70">
+            {formatCurrency(PRECO_AULA[tipo])} por aula · créditos liberados após confirmação do pagamento
+          </p>
         </div>
 
-        <button onClick={handleSave} disabled={saving || !selectedAlunaId}
+        <button onClick={handleSave} disabled={saving || !selectedAlunaId || credits < 2}
           className="w-full py-3 bg-brand-ink text-brand-cream rounded-xl font-medium text-sm disabled:opacity-50">
           {saving ? 'Gerando...' : 'Confirmar cobrança'}
         </button>

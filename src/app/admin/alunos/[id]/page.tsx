@@ -50,7 +50,12 @@ export default async function AlunaDetailPage({ params }: { params: Promise<{ id
   const totalPacoteAberto = (packageCharges ?? []).filter(c => c.status === 'awaiting_payment').reduce((s, c) => s + c.value, 0)
   const totalPacotePago = (packageCharges ?? []).filter(c => c.status === 'paid').reduce((s, c) => s + c.value, 0)
 
-  const totalAberto = totalQueimaAberto + totalPecaAberto + totalArgilaAberto + totalPacoteAberto
+  // Dívida por crédito negativo (aulas usadas sem pacote pago)
+  const valorPorAula = packageType === 'torno' ? 115 : 105
+  const dividaCredito = isNegative ? Math.abs(credits) * valorPorAula : 0
+  const totalPacoteAbertoComDivida = totalPacoteAberto + dividaCredito
+
+  const totalAberto = totalQueimaAberto + totalPecaAberto + totalArgilaAberto + totalPacoteAbertoComDivida
   const totalFechado = totalQueimaFechado + totalPecaFechado + totalArgilaFechado
   const totalPago = totalQueimaPago + totalPecaPago + totalArgilaPago + totalPacotePago
 
@@ -87,6 +92,11 @@ export default async function AlunaDetailPage({ params }: { params: Promise<{ id
             <p className={`font-display text-2xl ${isNegative || credits === 0 ? 'text-status-open-text' : 'text-status-paid-text'}`}>
               {credits} {isNegative ? '(devendo)' : `crédito${credits !== 1 ? 's' : ''}`}
             </p>
+            {isNegative && (
+              <p className="text-xs text-status-open-text mt-1">
+                Dívida estimada: {formatCurrency(dividaCredito)}
+              </p>
+            )}
           </div>
           <Link href={`/admin/alunos/${id}/creditos`}
             className="text-xs px-3 py-1.5 bg-white rounded-lg border border-brand-line text-brand-text font-medium">
@@ -131,7 +141,7 @@ export default async function AlunaDetailPage({ params }: { params: Promise<{ id
             <div className="flex items-center justify-between">
               <p className="text-sm text-brand-text">🎓 Aula (pacote)</p>
               <div className="flex gap-3 text-xs">
-                <span className="text-status-open-text">{formatCurrency(totalPacoteAberto)}</span>
+                <span className="text-status-open-text">{formatCurrency(totalPacoteAbertoComDivida)}</span>
                 <span className="text-status-paid-text">{formatCurrency(totalPacotePago)}</span>
               </div>
             </div>
