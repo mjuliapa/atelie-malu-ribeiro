@@ -62,19 +62,37 @@ export default function SlotPage() {
   useEffect(() => { load() }, [id])
 
   async function handleBlock() {
-    if (!slot) return
-    setSaving(true)
-    await fetch(`/api/admin/slots?id=${slot.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        is_blocked: !slot.is_blocked,
-        block_reason: slot.is_blocked ? null : blockReason.trim() || null,
-      }),
-    })
-    await load()
-    setSaving(false)
+  if (!slot) return
+  setSaving(true)
+
+  // Se está bloqueando (não desbloqueando) e há alunas confirmadas,
+  // cancela os agendamentos delas e devolve o crédito de cada uma
+  if (!slot.is_blocked) {
+    const confirmadas = slot.appointments?.filter(a => a.status === 'confirmed') ?? []
+    for (const appt of confirmadas) {
+      await fetch('/api/admin/appointments', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: appt.id,
+          status: 'cancelled',
+          cancelled_at: new Date().toISOString(),
+        }),
+      })
+    }
   }
+
+  await fetch(`/api/admin/slots?id=${slot.id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      is_blocked: !slot.is_blocked,
+      block_reason: slot.is_blocked ? null : blockReason.trim() || null,
+    }),
+  })
+  await load()
+  setSaving(false)
+}
 
   async function handleDelete() {
     if (!confirm('Excluir esta aula?')) return

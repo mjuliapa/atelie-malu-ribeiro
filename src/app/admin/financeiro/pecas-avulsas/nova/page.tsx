@@ -72,19 +72,28 @@ function NovaPecaAvulsaContent() {
     if (!user) return
 
     const firingTypeName = FIRING_TYPE_BY_CANAL[canal]
-    let firingType = firingTypes.find(f => f.name === firingTypeName)
+let firingType = firingTypes.find(f => f.name === firingTypeName)
 
-    // Cria o firing_type do canal se ainda não existir (primeira venda desse canal)
-    if (!firingType) {
-      const { data: novo } = await supabase
-        .from('firing_types')
-        .insert({ name: firingTypeName, coefficient: 1, description: `Canal de venda: ${canal}`, is_active: true })
-        .select()
-        .single()
-      firingType = novo
-    }
+if (!firingType) {
+  const res = await fetch('/api/admin/firing-types', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: firingTypeName }),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    alert(err.error ?? 'Erro ao criar tipo de venda. Tente novamente.')
+    setLoading(false)
+    return
+  }
+  firingType = await res.json()
+}
 
-    if (!firingType) { setLoading(false); return }
+if (!firingType) {
+  alert('Não foi possível identificar o tipo de venda.')
+  setLoading(false)
+  return
+}
 
     const finalName = canal === 'aluna'
       ? (quantity > 1 ? `${quantity}x ${name.trim()}` : name.trim())
@@ -94,24 +103,31 @@ function NovaPecaAvulsaContent() {
     // já que a FK exige um profile válido, mas o nome real do cliente fica no campo name
     const studentIdFinal = canal === 'aluna' ? studentId : user.id
 
-    const { error } = await supabase.from('pieces').insert({
-      student_id: studentIdFinal,
-      name: finalName,
-      height: 1,
-      width: 1,
-      length: 1,
-      firing_type_id: firingType.id,
-      coefficient: valorTotal,
-      calculated_value: valorTotal,
-      piece_date: pieceDate,
-      notes: notes.trim() || null,
-      created_by: user.id,
-    })
+    const res = await fetch('/api/admin/pecas', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    student_id: studentIdFinal,
+    name: finalName,
+    height: 1,
+    width: 1,
+    length: 1,
+    firing_type_id: firingType.id,
+    coefficient: valorTotal,
+    calculated_value: valorTotal,
+    piece_date: pieceDate,
+    notes: notes.trim() || null,
+    created_by: user.id,
+  }),
+})
 
-    setLoading(false)
-    if (!error) {
-      router.push(alunaParam ? `/admin/alunos/${alunaParam}` : '/admin/financeiro')
-    }
+setLoading(false)
+if (res.ok) {
+  router.push(alunaParam ? `/admin/alunos/${alunaParam}` : '/admin/financeiro')
+} else {
+  const err = await res.json().catch(() => ({}))
+  alert(err.error ?? 'Erro ao registrar venda.')
+}
   }
 
   return (
@@ -240,6 +256,20 @@ function NovaPecaAvulsaContent() {
       </div>
     </>
   )
+}
+
+export async function POST(request: NextRequest) {
+  const body = await request.json()
+  const supabase = getSupabase()
+
+  const { data, error } = await supabase
+    .from('pieces')
+    .insert(body)
+    .select()
+    .single()
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  return NextResponse.json(data)
 }
 
 export default function NovaPecaAvulsaPage() {
