@@ -27,7 +27,8 @@ export default async function AdminDashboardPage() {
       .eq('role', 'student').eq('status', 'active'),
   ])
 
-  const isVendaLivre = (p: any) => (p.firing_types as any)?.name === 'Venda livre (sem cálculo)'
+  const NOMES_VENDA_AVULSA = ['Venda livre (sem cálculo)', 'Venda Loja', 'Venda Site', 'Venda Encomenda']
+const isVendaLivre = (p: any) => NOMES_VENDA_AVULSA.includes((p.firing_types as any)?.name)
   const queimas = (pecas ?? []).filter(p => !isVendaLivre(p))
   const pecasAvulsas = (pecas ?? []).filter(p => isVendaLivre(p))
 
