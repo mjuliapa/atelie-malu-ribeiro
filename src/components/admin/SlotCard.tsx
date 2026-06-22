@@ -3,6 +3,7 @@
 import { ScheduleSlot } from '@/types'
 import { formatSlotTime, formatDate, cn } from '@/lib/utils'
 import { parseISO, isPast } from 'date-fns'
+import { AddAlunaToSlot } from './AddAlunaToSlot'
 
 interface SlotCardProps {
   slot: ScheduleSlot
@@ -19,12 +20,14 @@ export function SlotCard({
   onSelect,
   onMarkAttendance,
   onBlock,
+  onRefresh,
 }: SlotCardProps) {
   const confirmed = slot.confirmed_count ?? 0
   const available = slot.available_spots ?? slot.max_students
   const isFull = available === 0
   const isPastSlot = isPast(parseISO(slot.start_time))
   const occupancyPct = Math.round((confirmed / slot.max_students) * 100)
+  const canAddAluna = !slot.is_blocked && !isPastSlot && !isFull
 
   if (!expanded) {
     return (
@@ -153,6 +156,13 @@ export function SlotCard({
       {!slot.is_blocked && slot.appointments?.filter((a) => a.status === 'confirmed').length === 0 && (
         <div className="px-4 py-4 text-center">
           <p className="text-sm text-brand-muted">Nenhuma aluna agendada ainda.</p>
+        </div>
+      )}
+
+      {/* Adicionar aluna direto no card expandido */}
+      {canAddAluna && onRefresh && (
+        <div className="px-4 pb-3">
+          <AddAlunaToSlot slotId={slot.id} onAdded={onRefresh} />
         </div>
       )}
 

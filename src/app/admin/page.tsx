@@ -15,7 +15,7 @@ export default async function AdminDashboardPage() {
     { count: todaySlots },
     { count: activeStudents },
   ] = await Promise.all([
-    supabase.from('pieces').select('calculated_value, status'),
+    supabase.from('pieces').select('calculated_value, status, firing_types(name)'),
     supabase.from('clay_sales').select('total_value, status'),
     supabase.from('monthly_closings').select('total_value, status'),
     supabase.from('package_charges').select('value, status'),
@@ -27,9 +27,17 @@ export default async function AdminDashboardPage() {
       .eq('role', 'student').eq('status', 'active'),
   ])
 
-  const queimaOpen   = (pecas ?? []).filter(p => p.status === 'open').reduce((s, p) => s + p.calculated_value, 0)
-  const queimaClosed = (pecas ?? []).filter(p => p.status === 'closed').reduce((s, p) => s + p.calculated_value, 0)
-  const queimaPaid   = (pecas ?? []).filter(p => p.status === 'paid').reduce((s, p) => s + p.calculated_value, 0)
+  const isVendaLivre = (p: any) => (p.firing_types as any)?.name === 'Venda livre (sem cálculo)'
+  const queimas = (pecas ?? []).filter(p => !isVendaLivre(p))
+  const pecasAvulsas = (pecas ?? []).filter(p => isVendaLivre(p))
+
+  const queimaOpen   = queimas.filter(p => p.status === 'open').reduce((s, p) => s + p.calculated_value, 0)
+  const queimaClosed = queimas.filter(p => p.status === 'closed').reduce((s, p) => s + p.calculated_value, 0)
+  const queimaPaid   = queimas.filter(p => p.status === 'paid').reduce((s, p) => s + p.calculated_value, 0)
+
+  const pecaOpen   = pecasAvulsas.filter(p => p.status === 'open').reduce((s, p) => s + p.calculated_value, 0)
+  const pecaClosed = pecasAvulsas.filter(p => p.status === 'closed').reduce((s, p) => s + p.calculated_value, 0)
+  const pecaPaid   = pecasAvulsas.filter(p => p.status === 'paid').reduce((s, p) => s + p.calculated_value, 0)
 
   const argilaOpen   = (argilas ?? []).filter(a => a.status === 'open').reduce((s, a) => s + a.total_value, 0)
   const argilaClosed = (argilas ?? []).filter(a => a.status === 'closed').reduce((s, a) => s + a.total_value, 0)
@@ -91,6 +99,27 @@ export default async function AdminDashboardPage() {
             <div>
               <p className="text-[10px] text-brand-muted mb-0.5">Paga</p>
               <p className="font-display text-sm text-status-paid-text">{formatCurrency(argilaPaid)}</p>
+            </div>
+          </div>
+        </Link>
+
+        <Link href="/admin/financeiro/pecas-avulsas/nova" className="block bg-white rounded-xl shadow-card p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <span className="text-base">💎</span>
+            <p className="text-xs font-medium tracking-widest uppercase text-brand-muted">Peça</p>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <div>
+              <p className="text-[10px] text-brand-muted mb-0.5">Em aberto</p>
+              <p className="font-display text-sm text-status-open-text">{formatCurrency(pecaOpen)}</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-brand-muted mb-0.5">Aguardando</p>
+              <p className="font-display text-sm text-status-closed-text">{formatCurrency(pecaClosed)}</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-brand-muted mb-0.5">Pagas</p>
+              <p className="font-display text-sm text-status-paid-text">{formatCurrency(pecaPaid)}</p>
             </div>
           </div>
         </Link>
