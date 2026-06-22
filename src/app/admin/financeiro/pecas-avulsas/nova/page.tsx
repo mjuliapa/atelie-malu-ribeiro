@@ -8,6 +8,20 @@ import { useRouter, useSearchParams } from 'next/navigation'
 
 type Student = { id: string; full_name: string }
 
+const CANAIS = [
+  { id: 'aluna', label: 'Aluna', icon: '👩‍🎨' },
+  { id: 'loja', label: 'Loja', icon: '🏪' },
+  { id: 'site', label: 'Site', icon: '🌐' },
+  { id: 'encomenda', label: 'Encomenda', icon: '📦' },
+] as const
+
+const FIRING_TYPE_BY_CANAL: Record<string, string> = {
+  aluna: 'Venda livre (sem cálculo)',
+  loja: 'Venda Loja',
+  site: 'Venda Site',
+  encomenda: 'Venda Encomenda',
+}
+
 function cn(...classes: (string | boolean | undefined)[]) {
   return classes.filter(Boolean).join(' ')
 }
@@ -17,10 +31,12 @@ function NovaPecaAvulsaContent() {
   const searchParams = useSearchParams()
   const alunaParam = searchParams.get('aluna')
 
+  const [canal, setCanal] = useState<'aluna' | 'loja' | 'site' | 'encomenda'>(alunaParam ? 'aluna' : 'loja')
   const [students, setStudents] = useState<Student[]>([])
-  const [firingTypeId, setFiringTypeId] = useState('')
+  const [firingTypes, setFiringTypes] = useState<{id: string; name: string}[]>([])
   const [search, setSearch] = useState('')
   const [studentId, setStudentId] = useState(alunaParam ?? '')
+  const [clienteNome, setClienteNome] = useState('')
   const [name, setName] = useState('')
   const [valor, setValor] = useState('')
   const [quantity, setQuantity] = useState(1)
@@ -33,8 +49,7 @@ function NovaPecaAvulsaContent() {
       .then(r => r.json())
       .then(({ students, firingTypes }) => {
         setStudents(students)
-        const venda = firingTypes.find((f: any) => f.name === 'Venda livre (sem cálculo)')
-        if (venda) setFiringTypeId(venda.id)
+        setFiringTypes(firingTypes)
       })
   }, [])
 
@@ -47,22 +62,46 @@ function NovaPecaAvulsaContent() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!studentId || !firingTypeId || valorNum <= 0) return
+    if (canal === 'aluna' && !studentId) return
+    if (canal !== 'aluna' && !clienteNome.trim()) return
+    if (valorNum <= 0) return
+
     setLoading(true)
     const supabase = createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
-    const finalName = quantity > 1 ? `${quantity}x ${name.trim()}` : name.trim()
+    const firingTypeName = FIRING_TYPE_BY_CANAL[canal]
+    let firingType = firingTypes.find(f => f.name === firingTypeName)
+
+    // Cria o firing_type do canal se ainda não existir (primeira venda desse canal)
+    if (!firingType) {
+      const { data: novo } = await supabase
+        .from('firing_types')
+        .insert({ name: firingTypeName, coefficient: 1, description: `Canal de venda: ${canal}`, is_active: true })
+        .select()
+        .single()
+      firingType = novo
+    }
+
+    if (!firingType) { setLoading(false); return }
+
+    const finalName = canal === 'aluna'
+      ? (quantity > 1 ? `${quantity}x ${name.trim()}` : name.trim())
+      : `[Cliente: ${clienteNome.trim()}] ${quantity > 1 ? `${quantity}x ` : ''}${name.trim()}`
+
+    // Para canais não-aluna, usa o próprio usuário logado (admin) como student_id —
+    // já que a FK exige um profile válido, mas o nome real do cliente fica no campo name
+    const studentIdFinal = canal === 'aluna' ? studentId : user.id
 
     const { error } = await supabase.from('pieces').insert({
-      student_id: studentId,
+      student_id: studentIdFinal,
       name: finalName,
       height: 1,
       width: 1,
       length: 1,
-      firing_type_id: firingTypeId,
-      coefficient: valorTotal, // truque: coeficiente = valor total, volume = 1
+      firing_type_id: firingType.id,
+      coefficient: valorTotal,
       calculated_value: valorTotal,
       piece_date: pieceDate,
       notes: notes.trim() || null,
@@ -84,35 +123,60 @@ function NovaPecaAvulsaContent() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-2">Aluna</label>
-            {students.length === 0 ? (
-              <p className="text-sm text-brand-muted">Nenhuma aluna cadastrada ainda.</p>
-            ) : (
-              <>
-                <input
-                  value={search}
-                  onChange={e => setSearch(e.target.value)}
-                  placeholder="Buscar aluna..."
-                  className="w-full px-4 py-3 rounded-xl border border-brand-line bg-white text-brand-text focus:outline-none focus:border-brand-mauve mb-2" />
-                <div className="max-h-48 overflow-y-auto space-y-1.5">
-                  {filteredStudents.map(s => (
-                    <button key={s.id} type="button" onClick={() => setStudentId(s.id)}
-                      className={cn(
-                        'w-full px-4 py-3 rounded-xl border text-sm text-left transition-colors',
-                        studentId === s.id
-                          ? 'border-brand-mauve bg-brand-blush text-brand-mauve font-medium'
-                          : 'border-brand-line bg-white text-brand-text hover:border-brand-mauve'
-                      )}>
-                      {s.full_name}
-                    </button>
-                  ))}
-                  {filteredStudents.length === 0 && (
-                    <p className="text-sm text-brand-muted text-center py-3">Nenhuma aluna encontrada.</p>
-                  )}
-                </div>
-              </>
-            )}
+            <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-2">Canal de venda</label>
+            <div className="grid grid-cols-2 gap-2">
+              {CANAIS.map(c => (
+                <button key={c.id} type="button" onClick={() => setCanal(c.id)}
+                  className={cn(
+                    'py-3 rounded-xl border text-sm font-medium transition-colors flex items-center justify-center gap-1.5',
+                    canal === c.id ? 'border-brand-mauve bg-brand-blush text-brand-mauve' : 'border-brand-line bg-white text-brand-text'
+                  )}>
+                  <span>{c.icon}</span>
+                  <span>{c.label}</span>
+                </button>
+              ))}
+            </div>
           </div>
+
+          {canal === 'aluna' ? (
+            <div>
+              <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-2">Aluna</label>
+              {students.length === 0 ? (
+                <p className="text-sm text-brand-muted">Nenhuma aluna cadastrada ainda.</p>
+              ) : (
+                <>
+                  <input
+                    value={search}
+                    onChange={e => setSearch(e.target.value)}
+                    placeholder="Buscar aluna..."
+                    className="w-full px-4 py-3 rounded-xl border border-brand-line bg-white text-brand-text focus:outline-none focus:border-brand-mauve mb-2" />
+                  <div className="max-h-48 overflow-y-auto space-y-1.5">
+                    {filteredStudents.map(s => (
+                      <button key={s.id} type="button" onClick={() => setStudentId(s.id)}
+                        className={cn(
+                          'w-full px-4 py-3 rounded-xl border text-sm text-left transition-colors',
+                          studentId === s.id
+                            ? 'border-brand-mauve bg-brand-blush text-brand-mauve font-medium'
+                            : 'border-brand-line bg-white text-brand-text hover:border-brand-mauve'
+                        )}>
+                        {s.full_name}
+                      </button>
+                    ))}
+                    {filteredStudents.length === 0 && (
+                      <p className="text-sm text-brand-muted text-center py-3">Nenhuma aluna encontrada.</p>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          ) : (
+            <div>
+              <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-1.5">Nome do cliente</label>
+              <input required value={clienteNome} onChange={e => setClienteNome(e.target.value)}
+                placeholder="Nome de quem comprou"
+                className="w-full px-4 py-3 rounded-xl border border-brand-line bg-white text-brand-text focus:outline-none focus:border-brand-mauve" />
+            </div>
+          )}
 
           <div>
             <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-1.5">Nome da peça</label>
@@ -167,7 +231,8 @@ function NovaPecaAvulsaContent() {
               className="w-full px-4 py-3 rounded-xl border border-brand-line bg-white text-brand-text focus:outline-none focus:border-brand-mauve resize-none" />
           </div>
 
-          <button type="submit" disabled={loading || !studentId || !name || valorNum <= 0 || !firingTypeId}
+          <button type="submit"
+            disabled={loading || !name || valorNum <= 0 || (canal === 'aluna' ? !studentId : !clienteNome.trim())}
             className="w-full py-3 bg-brand-ink text-brand-cream rounded-xl font-medium text-sm disabled:opacity-50">
             {loading ? 'Salvando...' : 'Registrar venda'}
           </button>
