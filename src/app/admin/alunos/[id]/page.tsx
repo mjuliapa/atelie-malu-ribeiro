@@ -8,6 +8,7 @@ import { notFound } from 'next/navigation'
 import { PecaRowActions } from '@/components/admin/PecaRowActions'
 import { ArgilaRowActions } from '@/components/admin/ArgilaRowActions'
 import { PackageRowActions } from '@/components/admin/PackageRowActions'
+import { FechamentoRowActions } from '@/components/admin/FechamentoRowActions'
 
 export default async function AlunaDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -302,19 +303,19 @@ export default async function AlunaDetailPage({ params }: { params: Promise<{ id
             <h2 className="font-display text-base text-brand-text">Fechamentos</h2>
             <div className="bg-white rounded-xl shadow-card divide-y divide-brand-line">
               {fechamentos.map(f => (
-                <Link key={f.id} href={`/admin/fechamentos/${f.id}`}
-                  className="flex items-center gap-3 px-4 py-3 hover:bg-brand-cream transition-colors">
-                  <div className="flex-1">
+                <div key={f.id} className="flex items-center gap-3 px-4 py-3">
+                  <Link href={`/admin/fechamentos/${f.id}`} className="flex-1 hover:opacity-70 transition-opacity">
                     <p className="text-sm font-medium text-brand-text">{f.reference_month}</p>
                     <p className="text-xs text-brand-muted">{formatDate(f.created_at)}</p>
-                  </div>
+                  </Link>
                   <div className="text-right">
                     <p className="text-sm font-medium text-brand-text">{formatCurrency(f.total_value)}</p>
                     <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${f.status === 'paid' ? 'bg-status-paid-bg text-status-paid-text' : 'bg-status-open-bg text-status-open-text'}`}>
                       {f.status === 'paid' ? 'Pago' : 'Pendente'}
                     </span>
                   </div>
-                </Link>
+                  <FechamentoRowActions id={f.id} currentStatus={f.status} />
+                </div>
               ))}
             </div>
           </div>
