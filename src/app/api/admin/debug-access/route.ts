@@ -16,5 +16,8 @@ export async function GET() {
     results[t] = error ? { ok: false, error: error.message, code: (error as any).code } : { ok: true, count }
   }
 
+  const { data: sample } = await supabase.from('package_charges').select('*').limit(1)
+  results['package_charges_sample'] = sample
+
   return NextResponse.json(results)
 }
