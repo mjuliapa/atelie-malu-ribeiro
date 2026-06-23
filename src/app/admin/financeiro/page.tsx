@@ -6,11 +6,11 @@ import Link from 'next/link'
 export default async function FinanceiroPage() {
   const supabase = await createClient()
 
-  const [{ data: pecas }, { data: argilas }, { data: pacotes }, { data: custos }] = await Promise.all([
+  const [{ data: pecas }, { data: argilas }, { data: pacotes }, { data: custosRows }] = await Promise.all([
     supabase.from('pieces').select('calculated_value, status, firing_types(name)'),
     supabase.from('clay_sales').select('total_value, status'),
-    supabase.from('package_charges').select('value, status'),
-    supabase.from('system_settings').select('value').like('key', 'expense_%'),
+    supabase.from('package_charges').select('value, status').neq('status', 'cancelled'),
+    supabase.from('package_charges').select('value, created_at, package_type').like('package_type', 'custo:%'),
   ])
 
   const isVendaLivre = (p: any) => (p.firing_types as any)?.name === 'Venda livre (sem cálculo)'
@@ -29,7 +29,12 @@ export default async function FinanceiroPage() {
   const pacoteOpen = (pacotes ?? []).filter(p => p.status === 'awaiting_payment').reduce((s, p) => s + p.value, 0)
   const pacotePaid = (pacotes ?? []).filter(p => p.status === 'paid').reduce((s, p) => s + p.value, 0)
 
-  const custosLista = (custos ?? []).map(c => c.value as any)
+  const PREFIX = 'custo:'
+  const custosLista = (custosRows ?? []).map(c => ({
+    ...JSON.parse(c.package_type.slice(PREFIX.length)),
+    valor: c.value,
+    data: c.created_at.split('T')[0],
+  }))
   const totalFixoMensal = custosLista.filter(c => c.tipo === 'fixo').reduce((s, c) => s + c.valor, 0)
   const hoje = new Date()
   const from = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().split('T')[0]
