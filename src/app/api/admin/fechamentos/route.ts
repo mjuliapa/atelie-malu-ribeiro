@@ -66,10 +66,6 @@ export async function PATCH(request: NextRequest) {
   const { id, piece_ids, argila_ids, package_charge_ids, ...update } = body
   const supabase = getSupabase()
 
-  // ── GUARDA CONTRA DUPLICAÇÃO ──────────────────────────────────────────
-  // Busca o status ATUAL antes de atualizar. Se já estava 'paid', não
-  // reprocessa crédito/status de novo (evita duplicação por clique duplo
-  // ou reenvio da requisição).
   const { data: current } = await supabase
     .from('monthly_closings')
     .select('status')
@@ -91,7 +87,6 @@ export async function PATCH(request: NextRequest) {
     }
 
     if (package_charge_ids?.length) {
-      // ── GUARDA: só processa pacotes que ainda NÃO estão pagos ──────
       const { data: pacotesAtuais } = await supabase
         .from('package_charges')
         .select('id, student_id, credits, status')
@@ -110,6 +105,9 @@ export async function PATCH(request: NextRequest) {
           creditosPorAluna[p.student_id] = (creditosPorAluna[p.student_id] ?? 0) + p.credits
         }
 
+        // Soma os créditos do pacote ao saldo ATUAL — se o saldo estiver negativo
+        // (dívida de aulas usadas sem crédito), a soma abate a dívida primeiro
+        // automaticamente, pois é uma soma simples: -2 + 4 = +2
         for (const [student_id, creditsToAdd] of Object.entries(creditosPorAluna)) {
           const { data: profile } = await supabase
             .from('profiles')
@@ -126,8 +124,6 @@ export async function PATCH(request: NextRequest) {
         }
       }
     }
-  } else if (update.status === 'paid' && alreadyPaid) {
-    console.log('Fechamento', id, 'já estava pago — ignorando reprocessamento de créditos')
   }
 
   return NextResponse.json({ ok: true })
