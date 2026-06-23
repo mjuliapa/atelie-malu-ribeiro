@@ -6,7 +6,7 @@ import Link from 'next/link'
 export default async function FinanceiroPage() {
   const supabase = await createClient()
 
-  const [{ data: pecas }, { data: argilas }, { data: pacotes }, { data: custosRows }] = await Promise.all([
+  const [{ data: pecas, error: pecasError }, { data: argilas }, { data: pacotes }, { data: custosRows }] = await Promise.all([
     supabase.from('pieces').select('calculated_value, status, firing_types(name)'),
     supabase.from('clay_sales').select('total_value, status'),
     supabase.from('package_charges').select('value, status').neq('status', 'cancelled'),
@@ -107,7 +107,7 @@ export default async function FinanceiroPage() {
         <div>
           <h1 className="font-display text-2xl text-brand-text">Financeiro</h1>
           <p className="text-sm text-brand-muted">Queima, argila, peças e pacotes de aula</p>
-          <p className="text-xs text-red-600">DEBUG: pecas={JSON.stringify(pecas?.length)} queima={JSON.stringify(queimaPecas?.length)} venda={JSON.stringify(vendaLivrePecas?.length)}</p>
+          <p className="text-xs text-red-600">DEBUG: erro={pecasError?.message ?? 'nenhum'}</p>
         </div>
 
         <div className="space-y-3">
