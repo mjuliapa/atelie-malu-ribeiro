@@ -27,7 +27,7 @@ const testInsert = await supabase.from('package_charges').insert({
   package_type: 'custo_teste:{"grupo":"operacional","categoria":"Teste","descricao":"teste de insercao"}',
   credits: 10,
   value: 99.99,
-  status: 'custo_variavel',
+  status: 'cancelled',
   created_at: '2026-06-01T12:00:00',
 }).select().single()
 results['test_insert'] = testInsert.error ? { ok: false, error: testInsert.error.message } : { ok: true, row: testInsert.data }
