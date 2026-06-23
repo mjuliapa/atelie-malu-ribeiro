@@ -1,10 +1,14 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { AdminNavHeader } from '@/components/admin/AdminNav'
 import { formatCurrency } from '@/lib/utils'
 import Link from 'next/link'
 
 export default async function FinanceiroPage() {
-  const supabase = await createClient()
+  const supabase = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
 
   const [{ data: pecas, error: pecasError }, { data: argilas }, { data: pacotes }, { data: custosRows }] = await Promise.all([
     supabase.from('pieces').select('calculated_value, status, firing_types(name)'),
@@ -107,7 +111,6 @@ export default async function FinanceiroPage() {
         <div>
           <h1 className="font-display text-2xl text-brand-text">Financeiro</h1>
           <p className="text-sm text-brand-muted">Queima, argila, peças e pacotes de aula</p>
-          <p className="text-xs text-red-600">DEBUG: erro={pecasError?.message ?? 'nenhum'}</p>
         </div>
 
         <div className="space-y-3">
