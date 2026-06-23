@@ -6,6 +6,8 @@ import { formatCurrency, formatDate } from '@/lib/utils'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { PecaRowActions } from '@/components/admin/PecaRowActions'
+import { ArgilaRowActions } from '@/components/admin/ArgilaRowActions'
+import { PackageRowActions } from '@/components/admin/PackageRowActions'
 
 export default async function AlunaDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -261,6 +263,7 @@ export default async function AlunaDetailPage({ params }: { params: Promise<{ id
                       {statusLabel[a.status] ?? a.status}
                     </span>
                   </div>
+                  <ArgilaRowActions id={a.id} currentValue={a.total_value} />
                 </div>
               ))}
             </div>
@@ -278,11 +281,14 @@ export default async function AlunaDetailPage({ params }: { params: Promise<{ id
                     <p className="text-sm font-medium text-brand-text">Pacote {c.package_type} · {c.credits} aulas</p>
                     <p className="text-xs text-brand-muted">{formatDate(c.created_at)}</p>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium text-brand-text">{formatCurrency(c.value)}</p>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${c.status === 'paid' ? 'bg-status-paid-bg text-status-paid-text' : 'bg-status-open-bg text-status-open-text'}`}>
-                      {c.status === 'paid' ? 'Pago' : 'Pendente'}
-                    </span>
+                  <div className="text-right flex items-center gap-2">
+                    <div>
+                      <p className="text-sm font-medium text-brand-text">{formatCurrency(c.value)}</p>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${c.status === 'paid' ? 'bg-status-paid-bg text-status-paid-text' : 'bg-status-open-bg text-status-open-text'}`}>
+                        {c.status === 'paid' ? 'Pago' : 'Pendente'}
+                      </span>
+                    </div>
+                    <PackageRowActions id={c.id} currentValue={c.value} />
                   </div>
                 </div>
               ))}

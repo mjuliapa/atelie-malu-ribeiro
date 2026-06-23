@@ -90,7 +90,7 @@ export default async function FinanceiroPage() {
       paid: pacotePaid,
     },
     {
-      href: '/admin/financeiro/pecas-avulsas/nova',
+      href: '/admin/financeiro/pecas-avulsas',
       label: 'Peças',
       desc: 'Venda de peças avulsas — aluna, loja, site ou encomenda',
       icon: (
