@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 
+const PREFIX = 'custo:'
+
 function getSupabase() {
   return createSupabaseClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -13,11 +15,14 @@ type CustoValue = {
   grupo: 'produtos' | 'operacional' | 'investimento'
   categoria: string
   tipo: 'fixo' | 'variavel'
-  valor: number
-  data: string
   descricao?: string | null
   recorrente?: boolean
   dia_do_mes?: number | null
+}
+
+async function getAdminId(supabase: ReturnType<typeof getSupabase>) {
+  const { data } = await supabase.from('profiles').select('id').eq('role', 'admin').limit(1).single()
+  return data?.id as string | undefined
 }
 
 export async function GET(request: NextRequest) {
@@ -28,17 +33,23 @@ export async function GET(request: NextRequest) {
   const supabase = getSupabase()
 
   const { data, error } = await supabase
-    .from('system_settings')
-    .select('key, value, updated_at')
-    .like('key', 'expense_%')
-    .order('updated_at', { ascending: false })
+    .from('package_charges')
+    .select('id, value, created_at, package_type')
+    .like('package_type', `${PREFIX}%`)
+    .order('created_at', { ascending: false })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
 
-  let custos = (data ?? []).map(row => ({
-    id: row.key.replace('expense_', ''),
-    ...(row.value as CustoValue),
-  }))
+  let custos = (data ?? []).map(row => {
+    const json = row.package_type.slice(PREFIX.length)
+    const parsed: CustoValue = JSON.parse(json)
+    return {
+      id: row.id,
+      valor: row.value,
+      data: row.created_at.split('T')[0],
+      ...parsed,
+    }
+  })
 
   if (grupo) custos = custos.filter(c => c.grupo === grupo)
   if (from) custos = custos.filter(c => c.data >= from)
@@ -48,19 +59,31 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const body: CustoValue = await request.json()
+  const body: CustoValue & { valor: number; data: string } = await request.json()
   const supabase = getSupabase()
 
-  const id = crypto.randomUUID()
-  const { error } = await supabase
-    .from('system_settings')
+  const adminId = await getAdminId(supabase)
+  if (!adminId) return NextResponse.json({ error: 'Nenhum admin encontrado em profiles' }, { status: 400 })
+
+  const { grupo, categoria, tipo, descricao, recorrente, dia_do_mes } = body
+  const packageType = PREFIX + JSON.stringify({ grupo, categoria, tipo, descricao, recorrente, dia_do_mes })
+
+  const { data, error } = await supabase
+    .from('package_charges')
     .insert({
-      key: `expense_${id}`,
-      value: body,
+      student_id: adminId,
+      package_type: packageType,
+      credits: 0,
+      value: body.valor,
+      status: 'cancelled',
+      created_at: body.data,
+      created_by: adminId,
     })
+    .select('id')
+    .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
-  return NextResponse.json({ id })
+  return NextResponse.json({ id: data.id })
 }
 
 export async function DELETE(request: NextRequest) {
@@ -70,9 +93,10 @@ export async function DELETE(request: NextRequest) {
 
   const supabase = getSupabase()
   const { error } = await supabase
-    .from('system_settings')
+    .from('package_charges')
     .delete()
-    .eq('key', `expense_${id}`)
+    .eq('id', id)
+    .like('package_type', `${PREFIX}%`) // proteção: nunca apaga pacote real
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
   return NextResponse.json({ ok: true })
