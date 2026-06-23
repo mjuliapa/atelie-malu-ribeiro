@@ -19,5 +19,18 @@ export async function GET() {
   const { data: sample } = await supabase.from('package_charges').select('*').limit(1)
   results['package_charges_sample'] = sample
 
+  const adminProfile = await supabase.from('profiles').select('id').eq('role', 'admin').limit(1).single()
+results['admin_id'] = adminProfile.data?.id ?? adminProfile.error?.message
+
+const testInsert = await supabase.from('package_charges').insert({
+  student_id: adminProfile.data?.id,
+  package_type: 'custo_teste:{"grupo":"operacional","categoria":"Teste","descricao":"teste de insercao"}',
+  credits: 10,
+  value: 99.99,
+  status: 'custo_variavel',
+  created_at: '2026-06-01T12:00:00',
+}).select().single()
+results['test_insert'] = testInsert.error ? { ok: false, error: testInsert.error.message } : { ok: true, row: testInsert.data }
+
   return NextResponse.json(results)
 }
