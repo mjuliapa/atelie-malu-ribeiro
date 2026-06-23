@@ -22,15 +22,8 @@ export async function GET() {
   const adminProfile = await supabase.from('profiles').select('id').eq('role', 'admin').limit(1).single()
 results['admin_id'] = adminProfile.data?.id ?? adminProfile.error?.message
 
-const testInsert = await supabase.from('package_charges').insert({
-  student_id: adminProfile.data?.id,
-  package_type: 'custo_teste:{"grupo":"operacional","categoria":"Teste","descricao":"teste de insercao"}',
-  credits: 10,
-  value: 99.99,
-  status: 'cancelled',
-  created_at: '2026-06-01T12:00:00',
-}).select().single()
-results['test_insert'] = testInsert.error ? { ok: false, error: testInsert.error.message } : { ok: true, row: testInsert.data }
+await supabase.from('package_charges').delete().eq('id', '674bdc96-8e89-41bd-af88-cbafb1eb5702')
+results['cleanup'] = 'done'
 
   return NextResponse.json(results)
 }
