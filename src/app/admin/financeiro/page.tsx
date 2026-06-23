@@ -107,6 +107,7 @@ export default async function FinanceiroPage() {
         <div>
           <h1 className="font-display text-2xl text-brand-text">Financeiro</h1>
           <p className="text-sm text-brand-muted">Queima, argila, peças e pacotes de aula</p>
+          <p className="text-xs text-red-600">DEBUG: pecas={JSON.stringify(pecas?.length)} queima={JSON.stringify(queimaPecas?.length)} venda={JSON.stringify(vendaLivrePecas?.length)}</p>
         </div>
 
         <div className="space-y-3">
