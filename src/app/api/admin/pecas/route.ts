@@ -39,6 +39,18 @@ export async function GET(request: NextRequest) {
   return NextResponse.json(data ?? [])
 }
 
+export async function POST(request: NextRequest) {
+  const body = await request.json()
+  const supabase = getSupabase()
+  const { data, error } = await supabase
+    .from('pieces')
+    .insert(body)
+    .select('id')
+    .single()
+  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  return NextResponse.json(data)
+}
+
 export async function PATCH(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const id = searchParams.get('id')
