@@ -13,7 +13,8 @@ export default async function FinanceiroPage() {
     supabase.from('package_charges').select('value, created_at, package_type').like('package_type', 'custo:%'),
   ])
 
-  const isVendaLivre = (p: any) => (p.firing_types as any)?.name === 'Venda livre (sem cálculo)'
+  const NOMES_VENDA_AVULSA = ['Venda livre (sem cálculo)', 'Venda Loja', 'Venda Site', 'Venda Encomenda']
+  const isVendaLivre = (p: any) => NOMES_VENDA_AVULSA.includes((p.firing_types as any)?.name)
   const queimaPecas = (pecas ?? []).filter(p => !isVendaLivre(p))
   const vendaLivrePecas = (pecas ?? []).filter(p => isVendaLivre(p))
 

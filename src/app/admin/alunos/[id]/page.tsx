@@ -5,6 +5,7 @@ import { AlunaStatusToggle } from '@/components/admin/AlunaStatusToggle'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { PecaRowActions } from '@/components/admin/PecaRowActions'
 
 export default async function AlunaDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -212,6 +213,7 @@ export default async function AlunaDetailPage({ params }: { params: Promise<{ id
                       {statusLabel[p.status]}
                     </span>
                   </div>
+                  <PecaRowActions id={p.id} name={p.name} />
                 </div>
               ))}
             </div>
@@ -235,6 +237,7 @@ export default async function AlunaDetailPage({ params }: { params: Promise<{ id
                       {statusLabel[p.status]}
                     </span>
                   </div>
+                  <PecaRowActions id={p.id} name={p.name} />
                 </div>
               ))}
             </div>
