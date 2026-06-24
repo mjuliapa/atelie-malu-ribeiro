@@ -45,8 +45,19 @@ export async function GET(request: NextRequest) {
     .select('id, package_type, credits, value, status, created_at, student_id, profiles:student_id(full_name)')
     .gte('created_at', `${from}T00:00:00`)
     .lte('created_at', `${to}T23:59:59`)
+    .neq('status', 'cancelled')
   if (studentId) pacotesQuery = pacotesQuery.eq('student_id', studentId)
   const { data: pacotes } = await pacotesQuery
+
+  // Custos (gravados na mesma tabela package_charges, status 'cancelled', prefixo custo:)
+  let custosQuery = supabase
+    .from('package_charges')
+    .select('id, value, created_at, package_type')
+    .gte('created_at', `${from}T00:00:00`)
+    .lte('created_at', `${to}T23:59:59`)
+    .like('package_type', 'custo:%')
+  const { data: custosRows } = await custosQuery
+  const totalCustos = (custosRows ?? []).reduce((s, c) => s + c.value, 0)
 
   // Busca fechamentos no período
   let fechamentosQuery = supabase
@@ -113,12 +124,13 @@ export async function GET(request: NextRequest) {
     pecas: (pecas ?? []).reduce((s, p) => s + p.calculated_value, 0),
     argila: (argilas ?? []).reduce((s, c) => s + c.total_value, 0),
     pacotes: (pacotes ?? []).reduce((s, p) => s + p.value, 0),
+    custos: totalCustos,
     pago: resumoPorAluna.reduce((s, a) => s + a.totalPago, 0),
     aberto: resumoPorAluna.reduce((s, a) => s + a.totalAberto, 0),
   }
   const totalGeralCompleto = {
     ...totalGeral,
-    total: totalGeral.pecas + totalGeral.argila + totalGeral.pacotes,
+    total: totalGeral.pecas + totalGeral.argila + totalGeral.pacotes - totalGeral.custos,
   }
 
   return NextResponse.json({
