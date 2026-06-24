@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
-export function PecaRowActions({ id, name }: { id: string; name: string }) {
+export function PecaRowActions({ id, name, isAvulsa, currentValue }: { id: string; name: string; isAvulsa?: boolean; currentValue?: number }) {
   const router = useRouter()
   const [deleting, setDeleting] = useState(false)
 
@@ -21,14 +21,37 @@ export function PecaRowActions({ id, name }: { id: string; name: string }) {
     }
   }
 
+  async function handleEditAvulsa() {
+    const novo = window.prompt('Novo valor total (R$):', String(currentValue ?? 0))
+    if (novo === null) return
+    const valor = parseFloat(novo.replace(',', '.'))
+    if (isNaN(valor) || valor <= 0) return alert('Valor inválido.')
+    const res = await fetch(`/api/admin/pecas?id=${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ coefficient: valor, calculated_value: valor }),
+    })
+    if (res.ok) router.refresh()
+    else alert('Erro ao editar.')
+  }
+
   return (
     <div className="flex items-center gap-1 flex-shrink-0">
-      <Link href={`/admin/pecas/${id}/editar`} className="p-1.5 text-brand-muted hover:text-brand-mauve transition-colors">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-4 h-4">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-          <path strokeLinecap="round" strokeLinejoin="round" d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-        </svg>
-      </Link>
+      {isAvulsa ? (
+        <button onClick={handleEditAvulsa} className="p-1.5 text-brand-muted hover:text-brand-mauve transition-colors">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-4 h-4">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+          </svg>
+        </button>
+      ) : (
+        <Link href={`/admin/pecas/${id}/editar`} className="p-1.5 text-brand-muted hover:text-brand-mauve transition-colors">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-4 h-4">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+          </svg>
+        </Link>
+      )}
       <button onClick={handleDelete} disabled={deleting} className="p-1.5 text-brand-muted hover:text-status-open-text transition-colors disabled:opacity-50">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-4 h-4">
           <polyline strokeLinecap="round" strokeLinejoin="round" points="3 6 5 6 21 6" />

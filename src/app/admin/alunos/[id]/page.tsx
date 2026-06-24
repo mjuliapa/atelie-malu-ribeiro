@@ -240,7 +240,7 @@ export default async function AlunaDetailPage({ params }: { params: Promise<{ id
                       {statusLabel[p.status]}
                     </span>
                   </div>
-                  <PecaRowActions id={p.id} name={p.name} />
+                  <PecaRowActions id={p.id} name={p.name} isAvulsa currentValue={p.calculated_value} />
                 </div>
               ))}
             </div>
