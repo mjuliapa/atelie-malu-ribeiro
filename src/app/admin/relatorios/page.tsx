@@ -26,6 +26,7 @@ type RelatorioData = {
     pecas: number
     argila: number
     pacotes: number
+    custos: number
     pago: number
     aberto: number
     total: number
@@ -144,7 +145,7 @@ export default function RelatoriosPage() {
       y += 22
 
       doc.setFillColor(BLUSH)
-      doc.roundedRect(margin, y, pageW - margin * 2, 24, 3, 3, 'F')
+      doc.roundedRect(margin, y, pageW - margin * 2, data.totalGeral.custos > 0 ? 30 : 24, 3, 3, 'F')
       doc.setFont('helvetica', 'normal')
       doc.setFontSize(8)
       doc.setTextColor(MUTED)
@@ -156,6 +157,14 @@ export default function RelatoriosPage() {
       doc.text(formatCurrency(data.totalGeral.pecas), pageW - margin - 6, y + 7, { align: 'right' })
       doc.text(formatCurrency(data.totalGeral.argila), pageW - margin - 6, y + 13, { align: 'right' })
       doc.text(formatCurrency(data.totalGeral.pacotes), pageW - margin - 6, y + 19, { align: 'right' })
+      if (data.totalGeral.custos > 0) {
+        doc.setFont('helvetica', 'normal')
+        doc.setTextColor(MUTED)
+        doc.text('Custos', margin + 6, y + 25)
+        doc.setFont('helvetica', 'bold')
+        doc.setTextColor('#B0524F')
+        doc.text(`− ${formatCurrency(data.totalGeral.custos)}`, pageW - margin - 6, y + 25, { align: 'right' })
+      }
 
     } else {
       if (data.pecas.length > 0) {
@@ -305,6 +314,9 @@ export default function RelatoriosPage() {
                 <p>Pago: {formatCurrency(data.totalGeral.pago)}</p>
                 <p>Em aberto: {formatCurrency(data.totalGeral.aberto)}</p>
               </div>
+              {data.totalGeral.custos > 0 && (
+                <p className="text-xs text-status-open-text pt-1">− Custos: {formatCurrency(data.totalGeral.custos)}</p>
+              )}
             </div>
 
             {tipo === 'geral' ? (
