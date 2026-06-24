@@ -134,6 +134,20 @@ export async function DELETE(request: NextRequest) {
   if (!id) return NextResponse.json({ error: 'id obrigatório' }, { status: 400 })
   const supabase = getSupabase()
 
+  // Reverte peças e argilas pra "closed" (volta pra aguardando pagamento, fora do fechamento)
+  const { data: items } = await supabase
+    .from('closing_items')
+    .select('piece_id')
+    .eq('closing_id', id)
+
+  const pieceIds = (items ?? []).map(i => i.piece_id).filter(Boolean)
+  if (pieceIds.length) {
+    await supabase.from('pieces').update({ status: 'closed' }).in('id', pieceIds)
+  }
+
+  // Pacotes vinculados a este fechamento também voltam pra aguardando pagamento
+  await supabase.from('package_charges').update({ status: 'awaiting_payment', paid_at: null }).eq('closing_id', id)
+
   await supabase.from('closing_items').delete().eq('closing_id', id)
   const { error } = await supabase.from('monthly_closings').delete().eq('id', id)
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
