@@ -1,10 +1,14 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { AdminNavHeader } from '@/components/admin/AdminNav'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import Link from 'next/link'
 
 export default async function AdminDashboardPage() {
-  const supabase = await createClient()
+  const supabase = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
   const today = new Date().toISOString().split('T')[0]
 
   const [
@@ -18,7 +22,7 @@ export default async function AdminDashboardPage() {
     supabase.from('pieces').select('calculated_value, status, firing_types(name)'),
     supabase.from('clay_sales').select('total_value, status'),
     supabase.from('monthly_closings').select('total_value, status'),
-    supabase.from('package_charges').select('value, status'),
+    supabase.from('package_charges').select('value, status').neq('status', 'cancelled'),
     supabase.from('schedule_slots').select('*', { count: 'exact', head: true })
       .gte('start_time', `${today}T00:00:00`)
       .lte('start_time', `${today}T23:59:59`)
