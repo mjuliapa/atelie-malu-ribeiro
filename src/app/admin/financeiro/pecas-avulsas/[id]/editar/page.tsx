@@ -12,6 +12,13 @@ const CANAL_NOME: Record<string, string> = {
   'Venda Encomenda': 'Encomenda',
 }
 
+const NOME_POR_CANAL: Record<string, string> = {
+  Aluna: 'Venda livre (sem cálculo)',
+  Loja: 'Venda Loja',
+  Site: 'Venda Site',
+  Encomenda: 'Venda Encomenda',
+}
+
 function semAcento(s: string) {
   return s?.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
 }
@@ -65,6 +72,20 @@ export default function EditarPecaAvulsaPage() {
       ? name.trim()
       : `[Cliente: ${clienteNome.trim()}] ${name.trim()}`
 
+    const firingTypeName = NOME_POR_CANAL[canal]
+    const ftRes = await fetch('/api/admin/firing-types')
+    const firingTypes = await ftRes.json().catch(() => [])
+    let firingType = (firingTypes ?? []).find((f: any) => f.name === firingTypeName)
+
+    if (!firingType) {
+      const createRes = await fetch('/api/admin/firing-types', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: firingTypeName }),
+      })
+      firingType = await createRes.json().catch(() => null)
+    }
+
     const res = await fetch(`/api/admin/pecas?id=${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -74,6 +95,7 @@ export default function EditarPecaAvulsaPage() {
         calculated_value: valorNum,
         piece_date: pieceDate,
         notes: notes.trim() || null,
+        ...(firingType ? { firing_type_id: firingType.id } : {}),
       }),
     })
 
@@ -92,10 +114,23 @@ export default function EditarPecaAvulsaPage() {
     <>
       <AdminNavHeader title="Editar venda" showBack />
       <div className="px-4 pt-4 pb-6">
-        <h1 className="font-display text-2xl text-brand-text mb-1">Editar venda</h1>
-        <p className="text-sm text-brand-muted mb-5">Canal: {canal}</p>
+        <h1 className="font-display text-2xl text-brand-text mb-5">Editar venda</h1>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-2">Canal de venda</label>
+            <div className="grid grid-cols-2 gap-2">
+              {(['Aluna', 'Loja', 'Site', 'Encomenda'] as const).map(c => (
+                <button key={c} type="button" onClick={() => setCanal(c)}
+                  className={`py-3 rounded-xl border text-sm font-medium transition-colors ${
+                    canal === c ? 'border-brand-mauve bg-brand-blush text-brand-mauve' : 'border-brand-line bg-white text-brand-text'
+                  }`}>
+                  {c}
+                </button>
+              ))}
+            </div>
+          </div>
+
           {canal !== 'Aluna' && (
             <div>
               <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-1.5">Nome do cliente</label>

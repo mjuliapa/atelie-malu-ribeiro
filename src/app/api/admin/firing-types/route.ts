@@ -9,6 +9,13 @@ function getSupabase() {
   )
 }
 
+export async function GET() {
+  const supabase = getSupabase()
+  const { data, error } = await supabase.from('firing_types').select('id, name')
+  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  return NextResponse.json(data ?? [])
+}
+
 export async function POST(request: NextRequest) {
   const { name } = await request.json()
   const supabase = getSupabase()
