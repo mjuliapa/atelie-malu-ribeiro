@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { AdminNavHeader } from '@/components/admin/AdminNav'
 import { formatSlotTime, formatDate, cn } from '@/lib/utils'
-import { parseISO, isPast, isToday } from 'date-fns'
+import { parseISO, isPast } from 'date-fns'
 import { useParams, useRouter } from 'next/navigation'
 import { AttendanceModal } from '@/components/admin/AttendanceModal'
 import { AddAlunaToSlot } from '@/components/admin/AddAlunaToSlot'
@@ -127,7 +127,6 @@ export default function SlotPage() {
   const confirmed = slot.appointments?.filter(a => a.status === 'confirmed') ?? []
   const slotDate = parseISO(slot.start_time)
   const isPastSlot = isPast(slotDate)
-  const isSlotToday = isToday(slotDate)
   const hasVagas = confirmed.length < slot.max_students
 
   return (
@@ -201,7 +200,7 @@ export default function SlotPage() {
           <AddAlunaToSlot slotId={slot.id} onAdded={load} />
         )}
 
-        {(isPastSlot || isSlotToday) && !slot.is_blocked && confirmed.length > 0 && (
+        {!slot.is_blocked && confirmed.length > 0 && (
           <button onClick={() => setShowAttendance(true)}
             className="w-full py-3 bg-brand-ink text-brand-cream rounded-xl font-medium text-sm">
             ✓ Registrar presença
