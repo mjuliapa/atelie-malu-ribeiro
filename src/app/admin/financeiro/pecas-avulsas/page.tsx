@@ -88,7 +88,7 @@ export default function PecasAvulsasPage() {
                   <p className="text-xs text-brand-muted">{p.canal} · {formatDate(p.piece_date)}</p>
                 </div>
                 <p className="text-sm font-medium text-brand-text flex-shrink-0">{formatCurrency(p.calculated_value)}</p>
-                <PecaRowActions id={p.id} name={p.name} isAvulsa currentValue={p.calculated_value} />
+                <PecaRowActions id={p.id} name={p.name} isAvulsa />
               </div>
             ))}
           </div>
