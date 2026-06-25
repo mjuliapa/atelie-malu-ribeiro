@@ -172,4 +172,5 @@ export default async function FinanceiroPage() {
       </div>
     </>
   )
+  
 }

@@ -196,7 +196,7 @@ export default function SlotPage() {
           )}
         </div>
 
-        {hasVagas && !slot.is_blocked && !isPastSlot && (
+        {hasVagas && !slot.is_blocked && (
           <AddAlunaToSlot slotId={slot.id} onAdded={load} />
         )}
 

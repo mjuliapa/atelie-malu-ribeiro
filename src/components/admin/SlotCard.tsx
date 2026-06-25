@@ -27,7 +27,7 @@ export function SlotCard({
   const isFull = available === 0
   const isPastSlot = isPast(parseISO(slot.start_time))
   const occupancyPct = Math.round((confirmed / slot.max_students) * 100)
-  const canAddAluna = !slot.is_blocked && !isPastSlot && !isFull
+  const canAddAluna = !slot.is_blocked && !isFull
 
   if (!expanded) {
     return (
@@ -175,7 +175,7 @@ export function SlotCard({
 
       {/* Ações */}
       <div className="px-4 py-3 border-t border-brand-line flex gap-2 flex-wrap">
-        {!slot.is_blocked && isPastSlot && onMarkAttendance && (
+        {!slot.is_blocked && onMarkAttendance && (
           <button
             onClick={onMarkAttendance}
             className="flex items-center gap-1.5 text-xs px-3 py-1.5 bg-brand-ink text-brand-cream rounded-lg font-medium hover:bg-brand-text transition-colors"
