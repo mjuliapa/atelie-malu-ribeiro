@@ -179,16 +179,14 @@ export default function SlotPage() {
                         : 'bg-brand-cream text-brand-muted')}>
                       {att ? (attended ? '✓ Presente' : absent ? 'Falta' : 'Justificada') : 'Sem registro'}
                     </span>
-                    {
-                      <button onClick={() => handleRemoveAluna(a.id, a.profiles?.full_name ?? 'aluna')}
-                        className="p-1.5 text-brand-muted hover:text-status-open-text transition-colors"
-                        aria-label="Remover">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-4 h-4">
-                          <line x1="18" y1="6" x2="6" y2="18" strokeLinecap="round" />
-                          <line x1="6" y1="6" x2="18" y2="18" strokeLinecap="round" />
-                        </svg>
-                      </button>
-                    )}
+                    <button onClick={() => handleRemoveAluna(a.id, a.profiles?.full_name ?? 'aluna')}
+                      className="p-1.5 text-brand-muted hover:text-status-open-text transition-colors"
+                      aria-label="Remover">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-4 h-4">
+                        <line x1="18" y1="6" x2="6" y2="18" strokeLinecap="round" />
+                        <line x1="6" y1="6" x2="18" y2="18" strokeLinecap="round" />
+                      </svg>
+                    </button>
                   </div>
                 )
               })}
