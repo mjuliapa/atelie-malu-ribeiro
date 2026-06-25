@@ -179,7 +179,7 @@ export default function SlotPage() {
                         : 'bg-brand-cream text-brand-muted')}>
                       {att ? (attended ? '✓ Presente' : absent ? 'Falta' : 'Justificada') : 'Sem registro'}
                     </span>
-                    {!isPastSlot && (
+                    {
                       <button onClick={() => handleRemoveAluna(a.id, a.profiles?.full_name ?? 'aluna')}
                         className="p-1.5 text-brand-muted hover:text-status-open-text transition-colors"
                         aria-label="Remover">
