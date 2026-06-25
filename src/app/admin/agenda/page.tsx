@@ -79,6 +79,10 @@ export default function AdminAgendaPage() {
                 {v === 'week' ? 'Semana' : 'Dia'}
               </button>
             ))}
+            <button onClick={() => router.push('/admin/agenda/presencas')}
+              className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors bg-white text-brand-muted border border-brand-line">
+              Presenças
+            </button>
           </div>
           <div className="flex items-center gap-2">
             <button onClick={() => viewMode === 'week' ? navigateWeek(-1) : navigateDay(-1)}
