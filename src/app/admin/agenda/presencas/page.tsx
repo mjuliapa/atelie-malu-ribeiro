@@ -6,7 +6,7 @@ import { formatSlotTime, formatDate } from '@/lib/utils'
 
 type Student = { id: string; full_name: string }
 
-type Record = {
+type AttendanceRecord = {
   id: string
   status: string
   notes: string | null
@@ -38,7 +38,7 @@ export default function PresencasPage() {
   const [studentId, setStudentId] = useState('')
   const [from, setFrom] = useState(getFirstDayOfMonth())
   const [to, setTo] = useState(getLastDayOfMonth())
-  const [records, setRecords] = useState<Record[]>([])
+  const [records, setRecords] = useState<AttendanceRecord[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -58,12 +58,12 @@ export default function PresencasPage() {
 
   useEffect(() => { load() }, [studentId, from, to])
 
-  const porDia = records.reduce((acc: Record<string, Record[]>, r: any) => {
+  const porDia = records.reduce((acc: Record<string, AttendanceRecord[]>, r: any) => {
     const dia = r.start_time ? r.start_time.split('T')[0] : 'sem-data'
     if (!acc[dia]) acc[dia] = []
     acc[dia].push(r)
     return acc
-  }, {} as Record<string, Record[]>)
+  }, {} as Record<string, AttendanceRecord[]>)
 
   const dias = Object.keys(porDia).sort((a, b) => b.localeCompare(a))
 
