@@ -23,12 +23,28 @@ export default async function AlunaDetailPage({ params }: { params: Promise<{ id
   const { data: aluna } = await supabase.from('profiles').select('*').eq('id', id).single()
   if (!aluna) notFound()
 
-  const [{ data: pecas }, { data: argilas }, { data: fechamentos }, { data: packageCharges }] = await Promise.all([
+  const [{ data: pecas }, { data: argilas }, { data: fechamentos }, { data: packageCharges }, { data: appointmentsRaw }] = await Promise.all([
     admin.from('pieces').select('*, firing_types(name)').eq('student_id', id).order('created_at', { ascending: false }),
     admin.from('clay_sales').select('*, clay_types(name)').eq('student_id', id).order('created_at', { ascending: false }),
     admin.from('monthly_closings').select('*').eq('student_id', id).order('created_at', { ascending: false }),
     admin.from('package_charges').select('*').eq('student_id', id).order('created_at', { ascending: false }),
+    admin.from('appointments').select('id, slot_id, schedule_slots(start_time), attendance(status, notes)').eq('student_id', id).order('id', { ascending: false }),
   ])
+
+  const STATUS_LABEL: Record<string, string> = { present: 'Presente', absent: 'Falta', justified: 'Justificada' }
+  const STATUS_COLOR: Record<string, string> = {
+    present: 'bg-status-paid-bg text-status-paid-text',
+    absent: 'bg-status-open-bg text-status-open-text',
+    justified: 'bg-status-closed-bg text-status-closed-text',
+  }
+  const presencas = (appointmentsRaw ?? [])
+    .map((a: any) => ({
+      id: a.id,
+      start_time: a.schedule_slots?.start_time,
+      attendance: Array.isArray(a.attendance) ? a.attendance[0] : a.attendance,
+    }))
+    .filter((a: any) => a.attendance)
+    .sort((a: any, b: any) => (b.start_time ?? '').localeCompare(a.start_time ?? ''))
 
   const isVendaLivre = (p: any) => (p.firing_types as any)?.name === 'Venda livre (sem cálculo)'
   const queimas = (pecas ?? []).filter(p => !isVendaLivre(p))
@@ -296,6 +312,29 @@ export default async function AlunaDetailPage({ params }: { params: Promise<{ id
             </div>
           </div>
         )}
+
+        {/* Presença */}
+        <div className="space-y-2">
+          <h2 className="font-display text-base text-brand-text">Presença</h2>
+          {presencas.length === 0 ? (
+            <div className="bg-white rounded-xl p-6 text-center shadow-card">
+              <p className="text-sm text-brand-muted">Nenhum registro de presença ainda.</p>
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl shadow-card divide-y divide-brand-line">
+              {presencas.map((p: any) => (
+                <div key={p.id} className="flex items-center justify-between px-4 py-3">
+                  <p className="text-sm text-brand-text">
+                    {p.start_time ? formatDate(p.start_time, "d 'de' MMMM 'de' yyyy") : '—'}
+                  </p>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${STATUS_COLOR[p.attendance.status] ?? ''}`}>
+                    {STATUS_LABEL[p.attendance.status] ?? p.attendance.status}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* Fechamentos */}
         {fechamentos && fechamentos.length > 0 && (
