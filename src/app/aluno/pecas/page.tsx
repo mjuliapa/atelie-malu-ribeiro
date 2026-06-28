@@ -94,6 +94,8 @@ export default function AlunoPecasPage() {
 
   const credits = profile?.credits ?? 0
   const isNegative = credits < 0
+  const valorPorAula = profile?.package_type === 'torno' ? 115 : 105
+  const dividaCredito = isNegative ? Math.abs(credits) * valorPorAula : 0
 
   const statusLabel: Record<string, string> = {
     open: 'Em aberto', closed: 'Fechada', paid: 'Paga', cancelled: 'Cancelada'
@@ -154,14 +156,17 @@ export default function AlunoPecasPage() {
         </div>
       )}
 
-      {/* Saldo em aberto — peças + argila + pacotes */}
-      {(totalAberto > 0 || totalArgila > 0 || totalPacotes > 0) && (
+      {/* Saldo em aberto — peças + argila + pacotes + dívida de créditos */}
+      {(totalAberto > 0 || totalArgila > 0 || totalPacotes > 0 || dividaCredito > 0) && (
         <div className="bg-brand-blush rounded-xl p-4 flex justify-between items-center">
           <div>
             <p className="text-xs text-brand-mauve mb-0.5">Total em aberto</p>
             <p className="font-display text-2xl text-brand-mauve">
-              {formatCurrency(totalAberto + totalArgila + totalPacotes)}
+              {formatCurrency(totalAberto + totalArgila + totalPacotes + dividaCredito)}
             </p>
+            {dividaCredito > 0 && (
+              <p className="text-[10px] text-brand-mauve/70 mt-1">Inclui dívida de aulas: {formatCurrency(dividaCredito)}</p>
+            )}
           </div>
           <div className="text-right">
             {abertas.length > 0 && <p className="text-xs text-brand-mauve">{abertas.length} peça{abertas.length !== 1 ? 's' : ''}</p>}
