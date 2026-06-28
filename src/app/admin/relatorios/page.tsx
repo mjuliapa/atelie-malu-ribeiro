@@ -32,6 +32,8 @@ type RelatorioData = {
     custos: number
     pago: number
     aberto: number
+    fechamento: number
+    aguardando: number
     total: number
   }
 }
@@ -307,6 +309,29 @@ export default function RelatoriosPage() {
 
         {data && (
           <div className="space-y-4">
+            <div className="bg-status-paid-bg rounded-xl p-4 space-y-2">
+              <p className="text-xs font-medium tracking-widest uppercase text-status-paid-text">💰 Fluxo de caixa real</p>
+              <div className="flex justify-between items-center">
+                <p className="text-sm text-status-paid-text">Recebido − Custos pagos</p>
+                <p className="font-display text-2xl text-status-paid-text">{formatCurrency(data.totalGeral.pago - data.totalGeral.custos)}</p>
+              </div>
+              <p className="text-[10px] text-status-paid-text/70">
+                Recebido: {formatCurrency(data.totalGeral.pago)} · Custos: {formatCurrency(data.totalGeral.custos)}
+              </p>
+            </div>
+
+            <div className="bg-white rounded-xl shadow-card p-4 space-y-1">
+              <p className="text-xs font-medium tracking-widest uppercase text-brand-muted mb-2">Controle (não é caixa)</p>
+              <div className="flex justify-between text-sm">
+                <span className="text-brand-muted">Aguardando</span>
+                <span className="font-medium text-status-open-text">{formatCurrency(data.totalGeral.aguardando)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-brand-muted">No fechamento</span>
+                <span className="font-medium text-status-closed-text">{formatCurrency(data.totalGeral.fechamento)}</span>
+              </div>
+            </div>
+
             <div className="bg-brand-blush rounded-xl p-4 space-y-2">
               <p className="text-xs text-brand-mauve">Período: {formatDate(data.periodo.from)} a {formatDate(data.periodo.to)}</p>
               <div className="flex justify-between items-center">

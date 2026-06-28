@@ -158,6 +158,8 @@ export async function GET(request: NextRequest) {
     custos: totalCustos,
     pago: resumoPorAluna.reduce((s, a) => s + a.totalPago, 0),
     aberto: resumoPorAluna.reduce((s, a) => s + a.totalAberto, 0),
+    fechamento: resumoPorAluna.reduce((s, a) => s + a.totalFechamento, 0),
+    aguardando: resumoPorAluna.reduce((s, a) => s + a.totalAguardando, 0),
   }
   const totalGeralCompleto = {
     ...totalGeral,
