@@ -23,6 +23,9 @@ function NovoFechamentoContent() {
   const [pacotesPendentes, setPacotesPendentes] = useState<PackageCharge[]>([])
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [incluirPecas, setIncluirPecas] = useState(true)
+  const [incluirArgila, setIncluirArgila] = useState(true)
+  const [incluirPacotes, setIncluirPacotes] = useState(true)
 
   useEffect(() => {
     fetch('/api/admin/form-data')
@@ -51,9 +54,9 @@ function NovoFechamentoContent() {
     })
   }, [studentId])
 
-  const totalPecas = pecasAbertas.reduce((sum, p) => sum + p.calculated_value, 0)
-  const totalArgila = argilasAbertas.reduce((sum, a) => sum + a.total_value, 0)
-  const totalPacotes = pacotesPendentes.reduce((sum, p) => sum + p.value, 0)
+  const totalPecas = incluirPecas ? pecasAbertas.reduce((sum, p) => sum + p.calculated_value, 0) : 0
+  const totalArgila = incluirArgila ? argilasAbertas.reduce((sum, a) => sum + a.total_value, 0) : 0
+  const totalPacotes = incluirPacotes ? pacotesPendentes.reduce((sum, p) => sum + p.value, 0) : 0
   const totalGeral = totalPecas + totalArgila + totalPacotes
 
   const refMonth = new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
@@ -73,9 +76,9 @@ function NovoFechamentoContent() {
         reference_month: refMonth,
         total_value: totalGeral,
         created_by: user?.id,
-        pecas: pecasAbertas.map(p => ({ id: p.id, value_snapshot: p.calculated_value })),
-        argilas: argilasAbertas.map(a => ({ id: a.id, value_snapshot: a.total_value })),
-        pacotes: pacotesPendentes.map(p => ({ id: p.id, value_snapshot: p.value })),
+        pecas: incluirPecas ? pecasAbertas.map(p => ({ id: p.id, value_snapshot: p.calculated_value })) : [],
+        argilas: incluirArgila ? argilasAbertas.map(a => ({ id: a.id, value_snapshot: a.total_value })) : [],
+        pacotes: incluirPacotes ? pacotesPendentes.map(p => ({ id: p.id, value_snapshot: p.value })) : [],
       }),
     })
 
@@ -113,7 +116,11 @@ function NovoFechamentoContent() {
 
                 {pacotesPendentes.length > 0 && (
                   <div className="space-y-2">
-                    <h2 className="font-display text-base text-brand-text">Pacotes pendentes</h2>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" checked={incluirPacotes} onChange={e => setIncluirPacotes(e.target.checked)}
+                        className="w-4 h-4 accent-brand-mauve" />
+                      <h2 className="font-display text-base text-brand-text">Pacotes pendentes</h2>
+                    </label>
                     <div className="bg-white rounded-xl shadow-card divide-y divide-brand-line">
                       {pacotesPendentes.map(p => (
                         <div key={p.id} className="flex items-center justify-between px-4 py-3">
@@ -149,7 +156,11 @@ function NovoFechamentoContent() {
 
                 {argilasAbertas.length > 0 && (
                   <div className="space-y-2">
-                    <h2 className="font-display text-base text-brand-text">Argila em aberto</h2>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" checked={incluirArgila} onChange={e => setIncluirArgila(e.target.checked)}
+                        className="w-4 h-4 accent-brand-mauve" />
+                      <h2 className="font-display text-base text-brand-text">Argila em aberto</h2>
+                    </label>
                     <div className="bg-white rounded-xl shadow-card divide-y divide-brand-line">
                       {argilasAbertas.map(a => (
                         <div key={a.id} className="flex items-center justify-between px-4 py-3">
