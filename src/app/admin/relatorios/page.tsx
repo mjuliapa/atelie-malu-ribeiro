@@ -131,7 +131,7 @@ export default function RelatoriosPage() {
         doc.text(a.nome, margin + 2, y + 5)
         doc.setFontSize(7)
         doc.setTextColor(MUTED)
-        doc.text(`Pago: ${formatCurrency(a.totalPago)}  |  Aberto: ${formatCurrency(a.totalAberto)}`, margin + 2, y + 10)
+        doc.text(`Aguard: ${formatCurrency(a.totalAguardando)} | Fech: ${formatCurrency(a.totalFechamento)} | Pago: ${formatCurrency(a.totalPago)}`, margin + 2, y + 10)
         doc.setFont('helvetica', 'bold')
         doc.setFontSize(9)
         doc.setTextColor(MAUVE_DARK)
@@ -140,6 +140,15 @@ export default function RelatoriosPage() {
       }
 
       y += 8
+      doc.setFillColor('#5FA08C')
+      doc.roundedRect(margin, y, pageW - margin * 2, 14, 3, 3, 'F')
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(11)
+      doc.setTextColor(WHITE)
+      doc.text('Fluxo de caixa real (Pago - Custos)', margin + 6, y + 9.5)
+      doc.text(formatCurrency(data.totalGeral.pago - data.totalGeral.custos), pageW - margin - 6, y + 9.5, { align: 'right' })
+      y += 18
+
       doc.setFillColor(MAUVE)
       doc.roundedRect(margin, y, pageW - margin * 2, 14, 3, 3, 'F')
       doc.setFont('helvetica', 'bold')
@@ -376,7 +385,7 @@ export default function RelatoriosPage() {
                         <div>
                           <p className="text-sm font-medium text-brand-text">{a.nome}</p>
                           <p className="text-xs text-brand-muted">
-                            Pago: {formatCurrency(a.totalPago)} · Aberto: {formatCurrency(a.totalAberto)}
+                            Aguardando: {formatCurrency(a.totalAguardando)} · Fechamento: {formatCurrency(a.totalFechamento)} · Pago: {formatCurrency(a.totalPago)}
                           </p>
                         </div>
                         <p className="text-sm font-medium text-brand-text">{formatCurrency(a.totalGeral)}</p>
