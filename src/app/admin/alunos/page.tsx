@@ -17,6 +17,7 @@ type Aluna = {
 export default function AdminAlunosPage() {
   const [alunos, setAlunos] = useState<Aluna[]>([])
   const [filter, setFilter] = useState<'active' | 'paused' |'former'>('active')
+  const [onlyIncomplete, setOnlyIncomplete] = useState(false)
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
 
@@ -78,6 +79,12 @@ export default function AdminAlunosPage() {
               {statusLabel[f]}s
             </button>
           ))}
+          <button onClick={() => setOnlyIncomplete(v => !v)}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+              onlyIncomplete ? 'bg-status-open-text text-white' : 'bg-white text-brand-muted border border-brand-line'
+            }`}>
+            Cadastro incompleto
+          </button>
         </div>
         {loading ? (
           <div className="space-y-2">
@@ -86,7 +93,8 @@ export default function AdminAlunosPage() {
         ) : (
           <div className="bg-white rounded-xl shadow-card divide-y divide-brand-line">
             {(() => {
-              const filtrados = alunos.filter(a => a.full_name?.toLowerCase().includes(search.toLowerCase()))
+              let filtrados = alunos.filter(a => a.full_name?.toLowerCase().includes(search.toLowerCase()))
+              if (onlyIncomplete) filtrados = alunos.filter(a => !a.full_name)
               if (!filtrados.length) {
                 return (
                   <div className="p-8 text-center">
