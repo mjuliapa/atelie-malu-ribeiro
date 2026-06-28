@@ -77,6 +77,13 @@ export default function AlunoPecasPage() {
     load()
   }, [])
 
+  const NOMES_VENDA_AVULSA = ['Venda livre (sem cálculo)', 'Venda Loja', 'Venda Site', 'Venda Encomenda']
+  const isVendaAvulsa = (p: Peca) => NOMES_VENDA_AVULSA.includes((p.firing_types as any)?.name)
+  const queimas = pecas.filter(p => !isVendaAvulsa(p))
+  const pecasAvulsas = pecas.filter(p => isVendaAvulsa(p))
+
+  const queimasAbertas = queimas.filter(p => p.status === 'open')
+  const pecasAvulsasAbertas = pecasAvulsas.filter(p => p.status === 'open')
   const abertas = pecas.filter(p => p.status === 'open')
   const historico = pecas.filter(p => p.status !== 'open')
   const totalAberto = abertas.reduce((sum, p) => sum + p.calculated_value, 0)
@@ -178,11 +185,31 @@ export default function AlunoPecasPage() {
             </div>
           ) : (
             <>
-              {abertas.length > 0 && (
+              {queimasAbertas.length > 0 && (
+                <div className="space-y-2">
+                  <h2 className="font-display text-base text-brand-text">Queima em aberto</h2>
+                  <div className="bg-white rounded-xl shadow-card divide-y divide-brand-line">
+                    {queimasAbertas.map(p => (
+                      <div key={p.id} className="flex items-center gap-3 px-4 py-3">
+                        <div className="w-1 self-stretch rounded-full bg-status-open-text flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-brand-text truncate">{p.name}</p>
+                          <p className="text-xs text-brand-muted">{formatDate(p.piece_date)}</p>
+                        </div>
+                        <p className="text-sm font-medium text-brand-text flex-shrink-0">
+                          {formatCurrency(p.calculated_value)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {pecasAvulsasAbertas.length > 0 && (
                 <div className="space-y-2">
                   <h2 className="font-display text-base text-brand-text">Peças em aberto</h2>
                   <div className="bg-white rounded-xl shadow-card divide-y divide-brand-line">
-                    {abertas.map(p => (
+                    {pecasAvulsasAbertas.map(p => (
                       <div key={p.id} className="flex items-center gap-3 px-4 py-3">
                         <div className="w-1 self-stretch rounded-full bg-status-open-text flex-shrink-0" />
                         <div className="flex-1 min-w-0">
