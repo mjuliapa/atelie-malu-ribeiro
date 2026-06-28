@@ -70,7 +70,7 @@ export default function CreditosPage() {
         <div className="space-y-2">
           <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted">Créditos disponíveis (total atual)</label>
           <div className="flex items-center gap-4">
-            <button type="button" onClick={() => setCredits(c => Math.max(0, c - 1))}
+            <button type="button" onClick={() => setCredits(c => c - 1)}
               className="w-12 h-12 rounded-xl border border-brand-line bg-white text-brand-text text-xl font-bold flex items-center justify-center">
               −
             </button>
@@ -83,7 +83,7 @@ export default function CreditosPage() {
           </div>
           <p className="text-xs text-brand-muted mt-2">Definir total para:</p>
           <div className="flex gap-2">
-            {[0, 4, 8, 12].map(n => (
+            {[-4, -2, 0, 4, 8, 12].map(n => (
               <button key={n} type="button" onClick={() => setCredits(n)}
                 className="px-3 py-1.5 rounded-lg border border-brand-line bg-white text-xs text-brand-muted hover:border-brand-mauve transition-colors">
                 {n}

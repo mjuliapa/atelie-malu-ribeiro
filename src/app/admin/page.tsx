@@ -66,6 +66,14 @@ const isVendaLivre = (p: any) => NOMES_VENDA_AVULSA.includes((p.firing_types as 
           </p>
         </div>
 
+        <div className="bg-status-open-bg rounded-xl p-4 space-y-1">
+          <p className="text-xs font-medium tracking-widest uppercase text-status-open-text">💸 Total voando (em aberto)</p>
+          <p className="font-display text-3xl text-status-open-text">
+            {formatCurrency(queimaOpen + argilaOpen + pecaOpen + pacoteOpen + fechOpen)}
+          </p>
+          <p className="text-[10px] text-status-open-text/70">Soma de tudo ainda não pago, sem contar duplicado</p>
+        </div>
+
         <Link href="/admin/pecas" className="block bg-white rounded-xl shadow-card p-4 space-y-3">
           <div className="flex items-center gap-2">
             <span className="text-base">🔥</span>
