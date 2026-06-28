@@ -20,6 +20,7 @@ export default function AdminArgilaPage() {
   const [sales, setSales] = useState<Sale[]>([])
   const [filter, setFilter] = useState<'all' | 'open' | 'paid'>('all')
   const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
 
   useEffect(() => {
     setLoading(true)
@@ -29,7 +30,8 @@ export default function AdminArgilaPage() {
       .then(data => { setSales(data); setLoading(false) })
   }, [filter])
 
-  const totalAberto = sales.filter(s => s.status === 'open').reduce((sum, s) => sum + s.total_value, 0)
+  const sales_filtradas = sales.filter(s => (s.profiles as any)?.full_name?.toLowerCase().includes(search.toLowerCase()))
+  const totalAberto = sales_filtradas.filter(s => s.status === 'open').reduce((sum, s) => sum + s.total_value, 0)
 
   const statusColor: Record<string, string> = {
     open: 'bg-status-open-bg text-status-open-text',
@@ -54,6 +56,12 @@ export default function AdminArgilaPage() {
           </Link>
         </div>
 
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Buscar aluna pelo nome..."
+          className="w-full px-4 py-3 rounded-xl border border-brand-line bg-white text-brand-text focus:outline-none focus:border-brand-mauve" />
+
         {totalAberto > 0 && (
           <div className="bg-brand-blush rounded-xl p-4 flex justify-between items-center">
             <p className="text-xs text-brand-mauve">Total em aberto</p>
@@ -74,14 +82,16 @@ export default function AdminArgilaPage() {
 
         {loading ? (
           <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-16 bg-white rounded-xl animate-pulse" />)}</div>
-        ) : sales.length === 0 ? (
+        ) : sales_filtradas.length === 0 ? (
           <div className="bg-white rounded-xl p-8 text-center shadow-card">
-            <p className="font-display text-base text-brand-text mb-1">Nenhuma venda ainda</p>
-            <Link href="/admin/argila/nova" className="text-sm text-brand-mauve hover:underline">Registrar primeira venda</Link>
+            <p className="font-display text-base text-brand-text mb-1">
+              {search ? 'Nenhuma venda encontrada para esse nome' : 'Nenhuma venda ainda'}
+            </p>
+            {!search && <Link href="/admin/argila/nova" className="text-sm text-brand-mauve hover:underline">Registrar primeira venda</Link>}
           </div>
         ) : (
           <div className="bg-white rounded-xl shadow-card divide-y divide-brand-line">
-            {sales.map(s => (
+            {sales_filtradas.map(s => (
               <div key={s.id} className="flex items-center gap-3 px-4 py-3">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-brand-text truncate">
