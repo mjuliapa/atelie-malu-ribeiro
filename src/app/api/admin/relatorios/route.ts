@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
   // Busca peças no período
   let pecasQuery = supabase
     .from('pieces')
-    .select('id, name, calculated_value, status, piece_date, student_id, profiles:student_id(full_name)')
+    .select('id, name, calculated_value, status, piece_date, student_id, profiles:student_id(full_name), firing_types(name)')
     .gte('piece_date', from)
     .lte('piece_date', to)
   if (studentId) pecasQuery = pecasQuery.eq('student_id', studentId)
@@ -78,6 +78,8 @@ export async function GET(request: NextRequest) {
     totalGeral: number
     totalPago: number
     totalAberto: number
+    totalAguardando: number
+    totalFechamento: number
   }> = {}
 
   function ensureAluna(student_id: string, nome: string) {
@@ -86,9 +88,27 @@ export async function GET(request: NextRequest) {
         student_id, nome,
         totalPecas: 0, totalArgila: 0, totalPacotes: 0,
         totalGeral: 0, totalPago: 0, totalAberto: 0,
+        totalAguardando: 0, totalFechamento: 0,
       }
     }
     return porAluna[student_id]
+  }
+
+  const NOMES_VENDA_AVULSA: Record<string, string> = {
+    'Venda livre (sem cálculo)': 'Aluna',
+    'Venda Loja': 'Loja',
+    'Venda Site': 'Site',
+    'Venda Encomenda': 'Encomenda',
+  }
+  function semAcento(s: string) {
+    return (s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  }
+  const porCanal: Record<string, { aguardando: number; fechamento: number; pago: number; total: number }> = {
+    Queima: { aguardando: 0, fechamento: 0, pago: 0, total: 0 },
+    Aluna: { aguardando: 0, fechamento: 0, pago: 0, total: 0 },
+    Loja: { aguardando: 0, fechamento: 0, pago: 0, total: 0 },
+    Site: { aguardando: 0, fechamento: 0, pago: 0, total: 0 },
+    Encomenda: { aguardando: 0, fechamento: 0, pago: 0, total: 0 },
   }
 
   for (const p of pecas ?? []) {
@@ -97,7 +117,16 @@ export async function GET(request: NextRequest) {
     a.totalPecas += p.calculated_value
     a.totalGeral += p.calculated_value
     if (p.status === 'paid') a.totalPago += p.calculated_value
-    else a.totalAberto += p.calculated_value
+    else if (p.status === 'closed') a.totalFechamento += p.calculated_value
+    else { a.totalAberto += p.calculated_value; a.totalAguardando += p.calculated_value }
+
+    const firingName = (p as any).firing_types?.name ?? ''
+    const canalEntry = Object.entries(NOMES_VENDA_AVULSA).find(([n]) => semAcento(n) === semAcento(firingName))
+    const canal = canalEntry ? canalEntry[1] : 'Queima'
+    porCanal[canal].total += p.calculated_value
+    if (p.status === 'paid') porCanal[canal].pago += p.calculated_value
+    else if (p.status === 'closed') porCanal[canal].fechamento += p.calculated_value
+    else porCanal[canal].aguardando += p.calculated_value
   }
 
   for (const c of argilas ?? []) {
@@ -106,7 +135,8 @@ export async function GET(request: NextRequest) {
     a.totalArgila += c.total_value
     a.totalGeral += c.total_value
     if (c.status === 'paid') a.totalPago += c.total_value
-    else a.totalAberto += c.total_value
+    else if (c.status === 'closed') a.totalFechamento += c.total_value
+    else { a.totalAberto += c.total_value; a.totalAguardando += c.total_value }
   }
 
   for (const pk of pacotes ?? []) {
@@ -115,7 +145,8 @@ export async function GET(request: NextRequest) {
     a.totalPacotes += pk.value
     a.totalGeral += pk.value
     if (pk.status === 'paid') a.totalPago += pk.value
-    else a.totalAberto += pk.value
+    else if (pk.status === 'closed') a.totalFechamento += pk.value
+    else { a.totalAberto += pk.value; a.totalAguardando += pk.value }
   }
 
   const resumoPorAluna = Object.values(porAluna).sort((x, y) => y.totalGeral - x.totalGeral)
@@ -140,6 +171,7 @@ export async function GET(request: NextRequest) {
     pacotes: pacotes ?? [],
     fechamentos: fechamentos ?? [],
     resumoPorAluna,
+    porCanal,
     totalGeral: totalGeralCompleto,
   })
 }
