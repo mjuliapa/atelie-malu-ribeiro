@@ -21,7 +21,10 @@ type RelatorioData = {
     totalGeral: number
     totalPago: number
     totalAberto: number
+    totalAguardando: number
+    totalFechamento: number
   }[]
+  porCanal: Record<string, { aguardando: number; fechamento: number; pago: number; total: number }>
   totalGeral: {
     pecas: number
     argila: number
@@ -320,6 +323,23 @@ export default function RelatoriosPage() {
             </div>
 
             {tipo === 'geral' ? (
+              <div className="space-y-4">
+              <div className="space-y-2">
+                <h2 className="font-display text-base text-brand-text">Por canal de venda (Peças)</h2>
+                <div className="bg-white rounded-xl shadow-card divide-y divide-brand-line">
+                  {Object.entries(data.porCanal ?? {}).filter(([, v]) => v.total > 0).map(([canal, v]) => (
+                    <div key={canal} className="flex items-center justify-between px-4 py-3">
+                      <div>
+                        <p className="text-sm font-medium text-brand-text">{canal}</p>
+                        <p className="text-xs text-brand-muted">
+                          Aguardando: {formatCurrency(v.aguardando)} · Fechamento: {formatCurrency(v.fechamento)} · Pago: {formatCurrency(v.pago)}
+                        </p>
+                      </div>
+                      <p className="text-sm font-medium text-brand-text">{formatCurrency(v.total)}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
               <div className="space-y-2">
                 <h2 className="font-display text-base text-brand-text">Por aluna</h2>
                 <div className="bg-white rounded-xl shadow-card divide-y divide-brand-line">
@@ -339,6 +359,7 @@ export default function RelatoriosPage() {
                     ))
                   )}
                 </div>
+              </div>
               </div>
             ) : (
               <div className="space-y-4">
