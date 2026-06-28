@@ -9,6 +9,7 @@ type Aluna = {
   id: string
   full_name: string
   phone: string | null
+  email: string | null
   status: string
   created_at: string
 }
@@ -30,7 +31,15 @@ export default function AdminAlunosPage() {
         .eq('status', filter)
         .order('full_name')
 
-      setAlunos(data ?? [])
+      if (data && data.some(a => !a.full_name)) {
+        const ids = data.filter(a => !a.full_name).map(a => a.id)
+        const emailRes = await fetch(`/api/admin/emails-by-id?ids=${ids.join(',')}`)
+        const emailMap = await emailRes.json()
+        const merged = data.map(a => ({ ...a, email: emailMap[a.id] ?? null }))
+        setAlunos(merged)
+      } else {
+        setAlunos((data ?? []).map(a => ({ ...a, email: null })))
+      }
       setLoading(false)
     }
     load()
@@ -98,8 +107,8 @@ export default function AdminAlunosPage() {
                     </span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-brand-text truncate">{aluna.full_name}</p>
-                    <p className="text-xs text-brand-muted">{aluna.phone ?? 'Sem telefone'}</p>
+                    <p className="text-sm font-medium text-brand-text truncate">{aluna.full_name || aluna.email || 'Sem nome'}</p>
+                    <p className="text-xs text-brand-muted">{aluna.phone ?? (aluna.email ? aluna.email : 'Sem telefone')}</p>
                   </div>
                   <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${statusColor[aluna.status]}`}>
                     {statusLabel[aluna.status]}
