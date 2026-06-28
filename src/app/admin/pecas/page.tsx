@@ -19,6 +19,7 @@ export default function AdminPecasPage() {
   const [filter, setFilter] = useState<'all' | 'open' | 'closed' | 'paid'>('all')
   const [loading, setLoading] = useState(true)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [search, setSearch] = useState('')
 
   function load() {
     setLoading(true)
@@ -64,6 +65,23 @@ export default function AdminPecasPage() {
           </Link>
         </div>
 
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Buscar aluna pelo nome..."
+          className="w-full px-4 py-3 rounded-xl border border-brand-line bg-white text-brand-text focus:outline-none focus:border-brand-mauve" />
+
+        {(() => {
+          const filtradas = pecas.filter(p => (p.profiles as any)?.full_name?.toLowerCase().includes(search.toLowerCase()))
+          const totalAberto = filtradas.filter(p => p.status === 'open').reduce((s, p) => s + p.calculated_value, 0)
+          return totalAberto > 0 ? (
+            <div className="bg-brand-blush rounded-xl p-4 flex justify-between items-center">
+              <p className="text-xs text-brand-mauve">Total em aberto</p>
+              <p className="font-display text-xl text-brand-mauve">{formatCurrency(totalAberto)}</p>
+            </div>
+          ) : null
+        })()}
+
         <div className="flex gap-2 overflow-x-auto pb-1">
           {(['all', 'open', 'closed', 'paid'] as const).map((f) => (
             <button key={f} onClick={() => setFilter(f)}
@@ -79,14 +97,21 @@ export default function AdminPecasPage() {
           <div className="space-y-2">
             {[1,2,3].map(i => <div key={i} className="h-16 bg-white rounded-xl animate-pulse" />)}
           </div>
-        ) : pecas.length === 0 ? (
-          <div className="bg-white rounded-xl p-8 text-center shadow-card">
-            <p className="font-display text-base text-brand-text mb-1">Nenhuma queima encontrada</p>
-            <Link href="/admin/pecas/nova" className="text-sm text-brand-mauve hover:underline">Cadastrar primeira queima</Link>
-          </div>
-        ) : (
+        ) : (() => {
+          const filtradas = pecas.filter(p => (p.profiles as any)?.full_name?.toLowerCase().includes(search.toLowerCase()))
+          if (filtradas.length === 0) {
+            return (
+              <div className="bg-white rounded-xl p-8 text-center shadow-card">
+                <p className="font-display text-base text-brand-text mb-1">
+                  {search ? 'Nenhuma queima encontrada para esse nome' : 'Nenhuma queima encontrada'}
+                </p>
+                {!search && <Link href="/admin/pecas/nova" className="text-sm text-brand-mauve hover:underline">Cadastrar primeira queima</Link>}
+              </div>
+            )
+          }
+          return (
           <div className="bg-white rounded-xl shadow-card divide-y divide-brand-line">
-            {pecas.map((p) => (
+            {filtradas.map((p) => (
               <div key={p.id} className="flex items-center gap-3 px-4 py-3">
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-brand-text truncate">{p.name}</p>
@@ -123,7 +148,8 @@ export default function AdminPecasPage() {
               </div>
             ))}
           </div>
-        )}
+          )
+        })()}
       </div>
     </>
   )
