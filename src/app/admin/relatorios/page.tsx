@@ -147,7 +147,7 @@ export default function RelatoriosPage() {
       doc.setFont('helvetica', 'bold')
       doc.setFontSize(9)
       doc.setTextColor(WHITE)
-      doc.text('EM ABERTO (ainda nao recebido)', margin + 6, y + 6.5)
+      doc.text('EM ABERTO (ainda não recebido)', margin + 6, y + 6.5)
       doc.setFontSize(12)
       doc.text(formatCurrency(data.totalGeral.aguardando), margin + 6, y + 13)
       y += 20
