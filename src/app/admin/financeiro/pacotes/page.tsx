@@ -26,19 +26,28 @@ const STATUS_COLOR: Record<string, string> = {
   paid: 'bg-status-paid-bg text-status-paid-text',
 }
 
+type AlunaNegativada = { id: string; full_name: string; credits: number }
+
 export default function PacotesPage() {
   const [pacotes, setPacotes] = useState<Pacote[]>([])
+  const [negativadas, setNegativadas] = useState<AlunaNegativada[]>([])
   const [filter, setFilter] = useState<'all' | 'awaiting_payment' | 'closed' | 'paid' | 'negativado'>('all')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch('/api/admin/package-charges')
-      .then(r => r.json())
-      .then(data => { setPacotes(Array.isArray(data) ? data : []); setLoading(false) })
+    Promise.all([
+      fetch('/api/admin/package-charges').then(r => r.json()),
+      fetch('/api/admin/form-data').then(r => r.json()),
+    ]).then(([pacotesData, formData]) => {
+      setPacotes(Array.isArray(pacotesData) ? pacotesData : [])
+      const negs = (formData?.students ?? []).filter((s: any) => (s.credits ?? 0) < 0)
+      setNegativadas(negs)
+      setLoading(false)
+    })
   }, [])
 
-  const filtrados = filter === 'all' ? pacotes : pacotes.filter(p => p.status === filter)
-  const totalFiltrado = filtrados.reduce((s, p) => s + p.value, 0)
+  const filtrados = filter === 'all' || filter === 'negativado' ? pacotes : pacotes.filter(p => p.status === filter)
+  const totalFiltrado = filter === 'negativado' ? 0 : filtrados.reduce((s, p) => s + p.value, 0)
 
   return (
     <>
@@ -55,6 +64,12 @@ export default function PacotesPage() {
               {f === 'all' ? 'Todos' : STATUS_LABEL[f]}
             </button>
           ))}
+          <button onClick={() => setFilter('negativado')}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+              filter === 'negativado' ? 'bg-status-open-text text-white' : 'bg-white text-brand-muted border border-brand-line'
+            }`}>
+            Negativados ({negativadas.length})
+          </button>
         </div>
 
         <div className="bg-brand-blush rounded-xl p-4 flex justify-between items-center">
@@ -64,6 +79,22 @@ export default function PacotesPage() {
 
         {loading ? (
           <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-16 bg-white rounded-xl animate-pulse" />)}</div>
+        ) : filter === 'negativado' ? (
+          negativadas.length === 0 ? (
+            <div className="bg-white rounded-xl p-8 text-center shadow-card">
+              <p className="text-sm text-brand-muted">Nenhuma aluna negativada.</p>
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl shadow-card divide-y divide-brand-line">
+              {negativadas.map(a => (
+                <Link key={a.id} href={`/admin/alunos/${a.id}`}
+                  className="flex items-center justify-between px-4 py-3 hover:bg-brand-cream transition-colors">
+                  <p className="text-sm font-medium text-brand-text">{a.full_name}</p>
+                  <span className="text-sm font-medium text-status-open-text">{a.credits} crédito{a.credits !== -1 ? 's' : ''}</span>
+                </Link>
+              ))}
+            </div>
+          )
         ) : filtrados.length === 0 ? (
           <div className="bg-white rounded-xl p-8 text-center shadow-card">
             <p className="text-sm text-brand-muted">Nenhum pacote neste filtro.</p>
