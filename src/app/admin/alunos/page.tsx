@@ -15,8 +15,9 @@ type Aluna = {
 
 export default function AdminAlunosPage() {
   const [alunos, setAlunos] = useState<Aluna[]>([])
-  const [filter, setFilter] = useState<'active' | 'paused' | 'former'>('active')
+  const [filter, setFilter] = useState<'active' | 'paused' |'former'>('active')
   const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
 
   useEffect(() => {
     async function load() {
@@ -53,6 +54,12 @@ export default function AdminAlunosPage() {
           </div>
         </div>
 
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Buscar aluna pelo nome..."
+          className="w-full px-4 py-3 rounded-xl border border-brand-line bg-white text-brand-text focus:outline-none focus:border-brand-mauve" />
+
         <div className="flex gap-2 overflow-x-auto pb-1">
           {(['active', 'paused', 'former'] as const).map(f => (
             <button key={f} onClick={() => setFilter(f)}
@@ -63,20 +70,26 @@ export default function AdminAlunosPage() {
             </button>
           ))}
         </div>
-
         {loading ? (
           <div className="space-y-2">
             {[1,2,3].map(i => <div key={i} className="h-16 bg-white rounded-xl animate-pulse" />)}
           </div>
         ) : (
           <div className="bg-white rounded-xl shadow-card divide-y divide-brand-line">
-            {!alunos.length ? (
-              <div className="p-8 text-center">
-                <p className="font-display text-base text-brand-text mb-1">Nenhuma aluna {statusLabel[filter].toLowerCase()}</p>
-                <p className="text-sm text-brand-muted">Mude de aba para ver outras alunas.</p>
-              </div>
-            ) : (
-              alunos.map((aluna) => (
+            {(() => {
+              const filtrados = alunos.filter(a => a.full_name?.toLowerCase().includes(search.toLowerCase()))
+              if (!filtrados.length) {
+                return (
+                  <div className="p-8 text-center">
+                    <p className="font-display text-base text-brand-text mb-1">
+                      {search ? 'Nenhuma aluna encontrada' : `Nenhuma aluna ${statusLabel[filter].toLowerCase()}`}
+                    </p>
+                    <p className="text-sm text-brand-muted">{search ? 'Tente outro nome.' : 'Mude de aba para ver outras alunas.'}</p>
+                  </div>
+                )
+              }
+              return filtrados.map((aluna) => (
+
                 <Link key={aluna.id} href={`/admin/alunos/${aluna.id}`}
                   className="flex items-center gap-3 px-4 py-3 hover:bg-brand-cream transition-colors">
                   <div className="w-9 h-9 rounded-full bg-brand-blush flex items-center justify-center flex-shrink-0">
@@ -93,7 +106,7 @@ export default function AdminAlunosPage() {
                   </span>
                 </Link>
               ))
-            )}
+            })()}
           </div>
         )}
       </div>
