@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
   const closingId = searchParams.get('closing_id')
   const supabase = getSupabase()
 
-  let query = supabase.from('package_charges').select('*').order('created_at', { ascending: false })
+  let query = supabase.from('package_charges').select('*, profiles:student_id(full_name)').neq('status', 'cancelled').order('created_at', { ascending: false })
   if (studentId) query = query.eq('student_id', studentId)
   if (status) query = query.eq('status', status)
   if (closingId) query = query.eq('closing_id', closingId)
