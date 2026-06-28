@@ -77,7 +77,7 @@ export default async function FinanceiroPage() {
       paid: argilaPaid,
     },
     {
-      href: '/admin/fechamentos/pacote',
+      href: '/admin/financeiro/pacotes',
       label: 'Pacote de aulas',
       desc: 'Cobrança de pacotes manual ou torno',
       icon: (
