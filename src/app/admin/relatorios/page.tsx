@@ -140,23 +140,37 @@ export default function RelatoriosPage() {
       }
 
       y += 8
-      doc.setFillColor('#5FA08C')
-      doc.roundedRect(margin, y, pageW - margin * 2, 14, 3, 3, 'F')
-      doc.setFont('helvetica', 'bold')
-      doc.setFontSize(11)
-      doc.setTextColor(WHITE)
-      doc.text('Fluxo de caixa real (Pago - Custos)', margin + 6, y + 9.5)
-      doc.text(formatCurrency(data.totalGeral.pago - data.totalGeral.custos), pageW - margin - 6, y + 9.5, { align: 'right' })
-      y += 18
+      if (y > 240) { doc.addPage(); y = 20 }
 
-      doc.setFillColor(MAUVE)
-      doc.roundedRect(margin, y, pageW - margin * 2, 14, 3, 3, 'F')
+      doc.setFillColor('#E0B05A')
+      doc.roundedRect(margin, y, pageW - margin * 2, 16, 3, 3, 'F')
       doc.setFont('helvetica', 'bold')
-      doc.setFontSize(11)
+      doc.setFontSize(9)
       doc.setTextColor(WHITE)
-      doc.text('Total do periodo', margin + 6, y + 9.5)
-      doc.text(formatCurrency(data.totalGeral.total), pageW - margin - 6, y + 9.5, { align: 'right' })
-      y += 22
+      doc.text('EM ABERTO (ainda nao recebido)', margin + 6, y + 6.5)
+      doc.setFontSize(12)
+      doc.text(formatCurrency(data.totalGeral.aguardando), margin + 6, y + 13)
+      y += 20
+
+      doc.setFillColor('#8C9DA8')
+      doc.roundedRect(margin, y, pageW - margin * 2, 16, 3, 3, 'F')
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(9)
+      doc.setTextColor(WHITE)
+      doc.text('NO FECHAMENTO (aguardando pagamento)', margin + 6, y + 6.5)
+      doc.setFontSize(12)
+      doc.text(formatCurrency(data.totalGeral.fechamento), margin + 6, y + 13)
+      y += 20
+
+      doc.setFillColor('#5FA08C')
+      doc.roundedRect(margin, y, pageW - margin * 2, 16, 3, 3, 'F')
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(9)
+      doc.setTextColor(WHITE)
+      doc.text('FLUXO DE CAIXA REAL (recebido - custos pagos)', margin + 6, y + 6.5)
+      doc.setFontSize(12)
+      doc.text(formatCurrency(data.totalGeral.pago - data.totalGeral.custos), margin + 6, y + 13)
+      y += 24
 
       doc.setFillColor(BLUSH)
       doc.roundedRect(margin, y, pageW - margin * 2, data.totalGeral.custos > 0 ? 30 : 24, 3, 3, 'F')
@@ -344,7 +358,7 @@ export default function RelatoriosPage() {
             <div className="bg-brand-blush rounded-xl p-4 space-y-2">
               <p className="text-xs text-brand-mauve">Período: {formatDate(data.periodo.from)} a {formatDate(data.periodo.to)}</p>
               <div className="flex justify-between items-center">
-                <p className="text-sm text-brand-mauve">Total do período</p>
+                <p className="text-sm text-brand-mauve">Total faturado no período (competência)</p>
                 <p className="font-display text-2xl text-brand-mauve">{formatCurrency(data.totalGeral.total)}</p>
               </div>
               <div className="grid grid-cols-2 gap-2 text-xs text-brand-mauve/80 pt-1">
