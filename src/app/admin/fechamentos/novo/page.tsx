@@ -26,12 +26,24 @@ function NovoFechamentoContent() {
   const [incluirPecas, setIncluirPecas] = useState(true)
   const [incluirArgila, setIncluirArgila] = useState(true)
   const [incluirPacotes, setIncluirPacotes] = useState(true)
+  const [creditosNegativos, setCreditosNegativos] = useState<number | null>(null)
 
   useEffect(() => {
     fetch('/api/admin/form-data')
       .then(r => r.json())
       .then(({ students }) => setStudents(students))
   }, [])
+
+  useEffect(() => {
+    if (!studentId) { setCreditosNegativos(null); return }
+    fetch('/api/admin/form-data')
+      .then(r => r.json())
+      .then(({ students }) => {
+        const aluna = students.find((s: any) => s.id === studentId)
+        const credits = aluna?.credits ?? 0
+        setCreditosNegativos(credits < 0 ? credits : null)
+      })
+  }, [studentId])
 
   useEffect(() => {
     if (!studentId) {
@@ -107,6 +119,15 @@ function NovoFechamentoContent() {
           </select>
         </div>
 
+        {creditosNegativos !== null && (
+          <div className="bg-status-open-bg rounded-xl p-3 flex items-center gap-2">
+            <span className="text-base">⚠️</span>
+            <p className="text-xs text-status-open-text">
+              Esta aluna deve <strong>{Math.abs(creditosNegativos)} aula{Math.abs(creditosNegativos) !== 1 ? 's' : ''}</strong> (crédito negativo). Gere uma cobrança de pacote para incluir essa dívida no fechamento.
+            </p>
+          </div>
+        )}
+
         {studentId && (
           <>
             {loading ? (
@@ -139,7 +160,11 @@ function NovoFechamentoContent() {
 
                 {pecasAbertas.length > 0 && (
                   <div className="space-y-2">
-                    <h2 className="font-display text-base text-brand-text">Peças em aberto</h2>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input type="checkbox" checked={incluirPecas} onChange={e => setIncluirPecas(e.target.checked)}
+                        className="w-4 h-4 accent-brand-mauve" />
+                      <h2 className="font-display text-base text-brand-text">Peças em aberto</h2>
+                    </label>
                     <div className="bg-white rounded-xl shadow-card divide-y divide-brand-line">
                       {pecasAbertas.map(p => (
                         <div key={p.id} className="flex items-center justify-between px-4 py-3">
