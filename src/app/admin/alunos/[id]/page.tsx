@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { AdminNavHeader } from '@/components/admin/AdminNav'
 import { AlunaStatusToggle } from '@/components/admin/AlunaStatusToggle'
+import { DeleteAlunaButton } from '@/components/admin/DeleteAlunaButton'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -102,6 +103,8 @@ export default async function AlunaDetailPage({ params }: { params: Promise<{ id
           </div>
           <AlunaStatusToggle id={id} currentStatus={aluna.status ?? 'active'} />
         </div>
+
+        <DeleteAlunaButton id={id} nome={aluna.full_name ?? 'esta aluna'} />
 
         {/* Créditos */}
         <div className={`rounded-xl p-4 flex items-center justify-between ${isNegative ? 'bg-status-open-bg' : credits > 0 ? 'bg-status-paid-bg' : 'bg-status-open-bg'}`}>
