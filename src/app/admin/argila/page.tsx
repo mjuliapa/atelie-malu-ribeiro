@@ -31,7 +31,7 @@ export default function AdminArgilaPage() {
   }, [filter])
 
   const sales_filtradas = sales.filter(s => (s.profiles as any)?.full_name?.toLowerCase().includes(search.toLowerCase()))
-  const totalAberto = sales_filtradas.filter(s => s.status === 'open').reduce((sum, s) => sum + s.total_value, 0)
+  const totalFiltrado = sales_filtradas.reduce((sum, s) => sum + s.total_value, 0)
 
   const statusColor: Record<string, string> = {
     open: 'bg-status-open-bg text-status-open-text',
@@ -62,12 +62,10 @@ export default function AdminArgilaPage() {
           placeholder="Buscar aluna pelo nome..."
           className="w-full px-4 py-3 rounded-xl border border-brand-line bg-white text-brand-text focus:outline-none focus:border-brand-mauve" />
 
-        {totalAberto > 0 && (
-          <div className="bg-brand-blush rounded-xl p-4 flex justify-between items-center">
-            <p className="text-xs text-brand-mauve">Total em aberto</p>
-            <p className="font-display text-xl text-brand-mauve">{formatCurrency(totalAberto)}</p>
-          </div>
-        )}
+        <div className="bg-brand-blush rounded-xl p-4 flex justify-between items-center">
+          <p className="text-xs text-brand-mauve">Total no filtro</p>
+          <p className="font-display text-xl text-brand-mauve">{formatCurrency(totalFiltrado)}</p>
+        </div>
 
         <div className="flex gap-2 overflow-x-auto pb-1">
           {(['all', 'open', 'paid'] as const).map(f => (

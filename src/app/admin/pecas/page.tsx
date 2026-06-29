@@ -73,13 +73,13 @@ export default function AdminPecasPage() {
 
         {(() => {
           const filtradas = pecas.filter(p => (p.profiles as any)?.full_name?.toLowerCase().includes(search.toLowerCase()))
-          const totalAberto = filtradas.filter(p => p.status === 'open').reduce((s, p) => s + p.calculated_value, 0)
-          return totalAberto > 0 ? (
+          const totalFiltrado = filtradas.reduce((s, p) => s + p.calculated_value, 0)
+          return (
             <div className="bg-brand-blush rounded-xl p-4 flex justify-between items-center">
-              <p className="text-xs text-brand-mauve">Total em aberto</p>
-              <p className="font-display text-xl text-brand-mauve">{formatCurrency(totalAberto)}</p>
+              <p className="text-xs text-brand-mauve">Total no filtro</p>
+              <p className="font-display text-xl text-brand-mauve">{formatCurrency(totalFiltrado)}</p>
             </div>
-          ) : null
+          )
         })()}
 
         <div className="flex gap-2 overflow-x-auto pb-1">
