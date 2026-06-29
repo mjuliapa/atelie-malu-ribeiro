@@ -3,6 +3,8 @@ import { AdminNavHeader } from '@/components/admin/AdminNav'
 import { formatCurrency } from '@/lib/utils'
 import Link from 'next/link'
 
+export const dynamic = 'force-dynamic'
+
 export default async function FinanceiroPage() {
   const supabase = createAdminClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
