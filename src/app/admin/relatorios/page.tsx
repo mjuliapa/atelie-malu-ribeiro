@@ -269,8 +269,13 @@ export default function RelatoriosPage() {
       doc.setFont('helvetica', 'bold')
       doc.setFontSize(11)
       doc.setTextColor(WHITE)
-      doc.text('Total do periodo', margin + 6, y + 9.5)
+      doc.text('Resultado se tudo fosse pago', margin + 6, y + 9.5)
       doc.text(formatCurrency(data.totalGeral.total), pageW - margin - 6, y + 9.5, { align: 'right' })
+      y += 16
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(7)
+      doc.setTextColor(MUTED)
+      doc.text('(receita gerada no periodo menos custos, incluindo aberto/fechamento - nao e o caixa real)', margin, y)
     }
 
     const blob = doc.output('blob')
@@ -361,6 +366,9 @@ export default function RelatoriosPage() {
                 <p className="text-sm text-brand-mauve">Total faturado no período (competência)</p>
                 <p className="font-display text-2xl text-brand-mauve">{formatCurrency(data.totalGeral.total)}</p>
               </div>
+              <p className="text-[10px] text-brand-mauve/70">
+                Resultado se TUDO fosse pago (alunas em aberto e no fechamento) — não é o caixa real, é a receita gerada menos custos.
+              </p>
               <div className="grid grid-cols-2 gap-2 text-xs text-brand-mauve/80 pt-1">
                 <p>Pago: {formatCurrency(data.totalGeral.pago)}</p>
                 <p>Em aberto: {formatCurrency(data.totalGeral.aberto)}</p>
