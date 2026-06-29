@@ -31,6 +31,7 @@ export default function PecasAvulsasPage() {
   const [pecas, setPecas] = useState<Peca[]>([])
   const [canal, setCanal] = useState<'all' | 'Aluna' | 'Loja' | 'Site' | 'Encomenda'>('all')
   const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
 
   useEffect(() => {
     fetch('/api/admin/pecas')
@@ -49,7 +50,11 @@ export default function PecasAvulsasPage() {
     canal: Object.entries(CANAL_NOME).find(([n]) => semAcento(n) === semAcento(p.firing_types?.name ?? ''))?.[1] ?? '?',
   }))
 
-  const filtradas = canal === 'all' ? comCanal : comCanal.filter(p => p.canal === canal)
+  const porCanal = canal === 'all' ? comCanal : comCanal.filter(p => p.canal === canal)
+  const filtradas = porCanal.filter(p =>
+    p.name?.toLowerCase().includes(search.toLowerCase()) ||
+    p.profiles?.full_name?.toLowerCase().includes(search.toLowerCase())
+  )
 
   return (
     <>
@@ -61,6 +66,12 @@ export default function PecasAvulsasPage() {
             + Nova
           </Link>
         </div>
+
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Buscar por nome (aluna ou cliente)..."
+          className="w-full px-4 py-3 rounded-xl border border-brand-line bg-white text-brand-text focus:outline-none focus:border-brand-mauve" />
 
         <div className="flex gap-2 overflow-x-auto pb-1">
           {(['all', 'Aluna', 'Loja', 'Site', 'Encomenda'] as const).map(c => (
