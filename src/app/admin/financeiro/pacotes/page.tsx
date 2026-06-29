@@ -33,6 +33,7 @@ export default function PacotesPage() {
   const [negativadas, setNegativadas] = useState<AlunaNegativada[]>([])
   const [filter, setFilter] = useState<'all' | 'awaiting_payment' | 'closed' | 'paid' | 'negativado'>('all')
   const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
 
   useEffect(() => {
     Promise.all([
@@ -46,7 +47,8 @@ export default function PacotesPage() {
     })
   }, [])
 
-  const filtrados = filter === 'all' || filter === 'negativado' ? pacotes : pacotes.filter(p => p.status === filter)
+  const porStatus = filter === 'all' || filter === 'negativado' ? pacotes : pacotes.filter(p => p.status === filter)
+  const filtrados = porStatus.filter(p => p.profiles?.full_name?.toLowerCase().includes(search.toLowerCase()))
   const totalFiltrado = filter === 'negativado' ? 0 : filtrados.reduce((s, p) => s + p.value, 0)
 
   return (
@@ -54,6 +56,12 @@ export default function PacotesPage() {
       <AdminNavHeader title="Pacotes de aula" showBack />
       <div className="px-4 pt-4 pb-6 space-y-4">
         <h1 className="font-display text-2xl text-brand-text">Pacotes de aula</h1>
+
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Buscar aluna pelo nome..."
+          className="w-full px-4 py-3 rounded-xl border border-brand-line bg-white text-brand-text focus:outline-none focus:border-brand-mauve" />
 
         <div className="flex gap-2 overflow-x-auto pb-1">
           {(['all', 'awaiting_payment', 'closed', 'paid'] as const).map(f => (
