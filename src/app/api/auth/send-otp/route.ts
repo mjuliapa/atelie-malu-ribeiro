@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
 
     const { data, error } = await admin.auth.admin.generateLink({ type: 'magiclink', email })
     if (error || !data?.properties?.hashed_token) {
-      return NextResponse.json({ error: 'Não foi possível gerar o acesso.' }, { status: 500 })
+      return NextResponse.json({ error: error?.message ?? 'Não foi possível gerar o acesso.' }, { status: 500 })
     }
 
     return NextResponse.json({ success: true, token_hash: data.properties.hashed_token })
