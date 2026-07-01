@@ -71,9 +71,10 @@ export default async function AlunaDetailPage({ params }: { params: Promise<{ id
   const totalPacoteAberto = (packageCharges ?? []).filter(c => c.status === 'awaiting_payment').reduce((s, c) => s + c.value, 0)
   const totalPacotePago = (packageCharges ?? []).filter(c => c.status === 'paid').reduce((s, c) => s + c.value, 0)
 
-  // Dívida por crédito negativo (aulas usadas sem pacote pago)
+  // Dívida por crédito negativo — só mostra se não há pacote pendente de pagamento
   const valorPorAula = packageType === 'torno' ? 115 : 105
-  const dividaCredito = isNegative ? Math.abs(credits) * valorPorAula : 0
+  const temPacotePendente = (packageCharges ?? []).some(c => c.status === 'awaiting_payment' || c.status === 'closed')
+  const dividaCredito = isNegative && !temPacotePendente ? Math.abs(credits) * valorPorAula : 0
   const totalPacoteAbertoComDivida = totalPacoteAberto + dividaCredito
 
   const totalAberto = totalQueimaAberto + totalPecaAberto + totalArgilaAberto + totalPacoteAbertoComDivida
