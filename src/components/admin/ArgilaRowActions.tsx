@@ -29,7 +29,10 @@ export function ArgilaRowActions({ id, currentValue }: { id: string; currentValu
     const res = await fetch(`/api/admin/argila?id=${id}`, { method: 'DELETE' })
     setBusy(false)
     if (res.ok) router.refresh()
-    else alert('Erro ao excluir.')
+    else {
+      const err = await res.json().catch(() => ({}))
+      alert(err.error ?? 'Erro ao excluir.')
+    }
   }
 
   return (
