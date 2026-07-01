@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     )
 
     // cria o usuário se não existir
-    const { data: users } = await admin.auth.admin.listUsers()
+    const { data: users } = await admin.auth.admin.listUsers({ perPage: 1000 })
     const userExists = users?.users?.some((u) => u.email === email)
 
     if (!userExists) {
