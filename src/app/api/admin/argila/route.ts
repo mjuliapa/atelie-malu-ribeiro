@@ -46,3 +46,24 @@ export async function GET(request: NextRequest) {
   const { data } = await query
   return NextResponse.json(data ?? [])
 }
+export async function DELETE(request: NextRequest) {
+  const { searchParams } = new URL(request.url)
+  const id = searchParams.get('id')
+  if (!id) return NextResponse.json({ error: 'id obrigatório' }, { status: 400 })
+  const supabase = createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
+  const { data: closingItem } = await supabase
+    .from('clay_closing_items')
+    .select('id')
+    .eq('clay_sale_id', id)
+    .maybeSingle()
+  if (closingItem) {
+    return NextResponse.json({ error: 'Esta argila já está em um fechamento e não pode ser excluída.' }, { status: 400 })
+  }
+  const { error } = await supabase.from('clay_sales').delete().eq('id', id)
+  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  return NextResponse.json({ ok: true })
+}
