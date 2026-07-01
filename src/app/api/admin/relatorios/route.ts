@@ -149,7 +149,10 @@ export async function GET(request: NextRequest) {
     else { a.totalAberto += pk.value; a.totalAguardando += pk.value }
   }
 
-  const resumoPorAluna = Object.values(porAluna).sort((x, y) => y.totalGeral - x.totalGeral)
+  const ADMIN_ID = 'afc3ca0e-6ee7-48b8-9eec-2d7abb509554'
+  const resumoPorAluna = Object.values(porAluna)
+    .filter(a => a.student_id !== ADMIN_ID)
+    .sort((x, y) => y.totalGeral - x.totalGeral)
 
   const totalGeral = {
     pecas: (pecas ?? []).reduce((s, p) => s + p.calculated_value, 0),
