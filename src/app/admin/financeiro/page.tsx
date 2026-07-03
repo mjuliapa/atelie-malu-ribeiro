@@ -12,11 +12,24 @@ export default async function FinanceiroPage() {
     { auth: { autoRefreshToken: false, persistSession: false } }
   )
 
-  const [{ data: pecas, error: pecasError }, { data: argilas }, { data: pacotes }, { data: custosRows }] = await Promise.all([
+  const hoje = new Date()
+  const mesInicio = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().split('T')[0]
+  const mesFim = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).toISOString().split('T')[0]
+
+  const [{ data: pecas }, { data: argilas }, { data: pacotes }, { data: custosRows },
+    { data: pecasMes }, { data: argilasMes }, { data: pacotesMes }] = await Promise.all([
     supabase.from('pieces').select('calculated_value, status, firing_types(name)'),
     supabase.from('clay_sales').select('total_value, status'),
     supabase.from('package_charges').select('value, status').neq('status', 'cancelled'),
     supabase.from('package_charges').select('value, created_at, package_type').like('package_type', 'custo:%'),
+    supabase.from('pieces').select('calculated_value, status, firing_types(name)')
+      .gte('piece_date', mesInicio).lte('piece_date', mesFim),
+    supabase.from('clay_sales').select('total_value, status')
+      .gte('sale_date', mesInicio).lte('sale_date', mesFim),
+    supabase.from('package_charges').select('value, status')
+      .neq('status', 'cancelled')
+      .gte('created_at', `${mesInicio}T00:00:00`)
+      .lte('created_at', `${mesFim}T23:59:59`),
   ])
 
   const NOMES_VENDA_AVULSA = ['Venda livre (sem cálculo)', 'Venda Loja', 'Venda Site', 'Venda Encomenda']
@@ -36,6 +49,22 @@ export default async function FinanceiroPage() {
   const pacoteOpen = (pacotes ?? []).filter(p => p.status === 'awaiting_payment').reduce((s, p) => s + p.value, 0)
   const pacotePaid = (pacotes ?? []).filter(p => p.status === 'paid').reduce((s, p) => s + p.value, 0)
 
+  const NOMES_VENDA_AVULSA_FIN = ['Venda livre (sem cálculo)', 'Venda Loja', 'Venda Site', 'Venda Encomenda']
+  const isVendaLivreFin = (p: any) => NOMES_VENDA_AVULSA_FIN.includes((p.firing_types as any)?.name)
+
+  const queimaMes = (pecasMes ?? []).filter(p => !isVendaLivreFin(p))
+  const pecasMesAvulsas = (pecasMes ?? []).filter(p => isVendaLivreFin(p))
+  const totalMesPago =
+    queimaMes.filter(p => p.status === 'paid').reduce((s, p) => s + p.calculated_value, 0) +
+    pecasMesAvulsas.filter(p => p.status === 'paid').reduce((s, p) => s + p.calculated_value, 0) +
+    (argilasMes ?? []).filter(a => a.status === 'paid').reduce((s, a) => s + a.total_value, 0) +
+    (pacotesMes ?? []).filter(p => p.status === 'paid').reduce((s, p) => s + p.value, 0)
+  const totalMesAberto =
+    queimaMes.filter(p => p.status === 'open').reduce((s, p) => s + p.calculated_value, 0) +
+    pecasMesAvulsas.filter(p => p.status === 'open').reduce((s, p) => s + p.calculated_value, 0) +
+    (argilasMes ?? []).filter(a => a.status === 'open').reduce((s, a) => s + a.total_value, 0) +
+    (pacotesMes ?? []).filter(p => p.status === 'awaiting_payment').reduce((s, p) => s + p.value, 0)
+
   const PREFIX = 'custo:'
   const custosLista = (custosRows ?? []).map(c => ({
     ...JSON.parse(c.package_type.slice(PREFIX.length)),
@@ -43,11 +72,8 @@ export default async function FinanceiroPage() {
     data: c.created_at.split('T')[0],
   }))
   const totalFixoMensal = custosLista.filter(c => c.tipo === 'fixo').reduce((s, c) => s + c.valor, 0)
-  const hoje = new Date()
-  const from = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().split('T')[0]
-  const to = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0).toISOString().split('T')[0]
   const totalVariavelMes = custosLista
-    .filter(c => c.tipo === 'variavel' && c.data >= from && c.data <= to)
+    .filter(c => c.tipo === 'variavel' && c.data >= mesInicio && c.data <= mesFim)
     .reduce((s, c) => s + c.valor, 0)
   const totalCustosMes = totalFixoMensal + totalVariavelMes
 
@@ -113,6 +139,21 @@ export default async function FinanceiroPage() {
         <div>
           <h1 className="font-display text-2xl text-brand-text">Financeiro</h1>
           <p className="text-sm text-brand-muted">Queima, argila, peças e pacotes de aula</p>
+        </div>
+
+        <div className="bg-status-paid-bg rounded-xl p-4 space-y-2">
+          <p className="text-xs font-medium tracking-widest uppercase text-status-paid-text">📅 Mês vigente</p>
+          <div className="flex justify-between">
+            <div>
+              <p className="text-[10px] text-status-paid-text/70">Pago no mês</p>
+              <p className="font-display text-2xl text-status-paid-text">{formatCurrency(totalMesPago)}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] text-status-paid-text/70">Em aberto no mês</p>
+              <p className="font-display text-2xl text-status-paid-text">{formatCurrency(totalMesAberto)}</p>
+            </div>
+          </div>
+          <p className="text-[10px] text-status-paid-text/70">− Custos do mês: {formatCurrency(totalCustosMes)}</p>
         </div>
 
         <div className="space-y-3">
