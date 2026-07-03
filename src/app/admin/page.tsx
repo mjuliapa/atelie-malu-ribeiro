@@ -48,42 +48,40 @@ export default async function AdminDashboardPage() {
   ])
 
   const NOMES_VENDA_AVULSA = ['Venda livre (sem cálculo)', 'Venda Loja', 'Venda Site', 'Venda Encomenda']
-const isVendaLivre = (p: any) => NOMES_VENDA_AVULSA.includes((p.firing_types as any)?.name)
-  const queimas = (pecas ?? []).filter(p => !isVendaLivre(p))
-  const pecasAvulsas = (pecas ?? []).filter(p => isVendaLivre(p))
-
-  const queimaOpen   = queimas.filter(p => p.status === 'open').reduce((s, p) => s + p.calculated_value, 0)
-  const queimaClosed = queimas.filter(p => p.status === 'closed').reduce((s, p) => s + p.calculated_value, 0)
-  const queimaPaid   = queimas.filter(p => p.status === 'paid').reduce((s, p) => s + p.calculated_value, 0)
-
-  const pecaOpen   = pecasAvulsas.filter(p => p.status === 'open').reduce((s, p) => s + p.calculated_value, 0)
-  const pecaClosed = pecasAvulsas.filter(p => p.status === 'closed').reduce((s, p) => s + p.calculated_value, 0)
-  const pecaPaid   = pecasAvulsas.filter(p => p.status === 'paid').reduce((s, p) => s + p.calculated_value, 0)
-
-  const argilaOpen   = (argilas ?? []).filter(a => a.status === 'open').reduce((s, a) => s + a.total_value, 0)
-  const argilaClosed = (argilas ?? []).filter(a => a.status === 'closed').reduce((s, a) => s + a.total_value, 0)
-  const argilaPaid   = (argilas ?? []).filter(a => a.status === 'paid').reduce((s, a) => s + a.total_value, 0)
-
-  const fechOpen = (fechamentos ?? []).filter(f => f.status === 'awaiting_payment').reduce((s, f) => s + f.total_value, 0)
-  const fechPaid = (fechamentos ?? []).filter(f => f.status === 'paid').reduce((s, f) => s + f.total_value, 0)
+  const isVendaLivre = (p: any) => NOMES_VENDA_AVULSA.includes((p.firing_types as any)?.name)
 
   // Mês vigente
   const queimaMes = (pecasMes ?? []).filter(p => !isVendaLivre(p))
   const pecasMesAvulsas = (pecasMes ?? []).filter(p => isVendaLivre(p))
   const queimaMesPaid = queimaMes.filter(p => p.status === 'paid').reduce((s, p) => s + p.calculated_value, 0)
   const queimaMesOpen = queimaMes.filter(p => p.status === 'open').reduce((s, p) => s + p.calculated_value, 0)
+  const queimaMesClosed = queimaMes.filter(p => p.status === 'closed').reduce((s, p) => s + p.calculated_value, 0)
   const pecaMesPaid = pecasMesAvulsas.filter(p => p.status === 'paid').reduce((s, p) => s + p.calculated_value, 0)
   const pecaMesOpen = pecasMesAvulsas.filter(p => p.status === 'open').reduce((s, p) => s + p.calculated_value, 0)
   const argilaMesPaid = (argilasMes ?? []).filter(a => a.status === 'paid').reduce((s, a) => s + a.total_value, 0)
   const argilaMesOpen = (argilasMes ?? []).filter(a => a.status === 'open').reduce((s, a) => s + a.total_value, 0)
+  const argilaMesClosed = (argilasMes ?? []).filter(a => a.status === 'closed').reduce((s, a) => s + a.total_value, 0)
   const pacoteMesPaid = (pacotesMes ?? []).filter(p => p.status === 'paid').reduce((s, p) => s + p.value, 0)
   const pacoteMesOpen = (pacotesMes ?? []).filter(p => p.status === 'awaiting_payment').reduce((s, p) => s + p.value, 0)
-  const totalMesPago = queimaMesPaid + pecaMesPaid + argilaMesPaid + pacoteMesPaid
-  const totalMesAberto = queimaMesOpen + pecaMesOpen + argilaMesOpen + pacoteMesOpen
+  const pacoteMesClosed = (pacotesMes ?? []).filter(p => p.status === 'closed').reduce((s, p) => s + p.value, 0)
 
-  const pacoteOpen   = (pacotes ?? []).filter(p => p.status === 'awaiting_payment').reduce((s, p) => s + p.value, 0)
-  const pacoteClosed = (pacotes ?? []).filter(p => p.status === 'closed').reduce((s, p) => s + p.value, 0)
-  const pacotePaid   = (pacotes ?? []).filter(p => p.status === 'paid').reduce((s, p) => s + p.value, 0)
+  const totalMesPago = queimaMesPaid + pecaMesPaid + argilaMesPaid + pacoteMesPaid
+  const totalMesAberto = queimaMesOpen + pecaMesOpen + argilaMesOpen + pacoteMesOpen + queimaMesClosed + argilaMesClosed + pacoteMesClosed
+
+  // Acumulado histórico
+  const queimas = (pecas ?? []).filter(p => !isVendaLivre(p))
+  const pecasAvulsas = (pecas ?? []).filter(p => isVendaLivre(p))
+  const totalHistoricoAberto =
+    queimas.filter(p => p.status === 'open').reduce((s, p) => s + p.calculated_value, 0) +
+    pecasAvulsas.filter(p => p.status === 'open').reduce((s, p) => s + p.calculated_value, 0) +
+    (argilas ?? []).filter(a => a.status === 'open').reduce((s, a) => s + a.total_value, 0) +
+    (pacotes ?? []).filter(p => p.status === 'awaiting_payment').reduce((s, p) => s + p.value, 0) +
+    (fechamentos ?? []).filter(f => f.status === 'awaiting_payment').reduce((s, f) => s + f.total_value, 0)
+  const totalHistoricoPago =
+    queimas.filter(p => p.status === 'paid').reduce((s, p) => s + p.calculated_value, 0) +
+    pecasAvulsas.filter(p => p.status === 'paid').reduce((s, p) => s + p.calculated_value, 0) +
+    (argilas ?? []).filter(a => a.status === 'paid').reduce((s, a) => s + a.total_value, 0) +
+    (pacotes ?? []).filter(p => p.status === 'paid').reduce((s, p) => s + p.value, 0)
 
   return (
     <>
@@ -96,114 +94,35 @@ const isVendaLivre = (p: any) => NOMES_VENDA_AVULSA.includes((p.firing_types as 
           </p>
         </div>
 
-        <div className="bg-status-open-bg rounded-xl p-4 space-y-1">
-          <p className="text-xs font-medium tracking-widest uppercase text-status-open-text">💸 Total voando (em aberto)</p>
-          <p className="font-display text-3xl text-status-open-text">
-            {formatCurrency(queimaOpen + argilaOpen + pecaOpen + pacoteOpen + fechOpen)}
-          </p>
-          <p className="text-[10px] text-status-open-text/70">Soma de tudo ainda não pago, sem contar duplicado</p>
+        {/* Mês vigente — destaque principal */}
+        <div className="bg-status-paid-bg rounded-xl p-4 space-y-3">
+          <p className="text-xs font-medium tracking-widest uppercase text-status-paid-text">📅 Mês vigente</p>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <p className="text-[10px] text-status-paid-text/70 mb-0.5">Recebido no mês</p>
+              <p className="font-display text-2xl text-status-paid-text">{formatCurrency(totalMesPago)}</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-status-paid-text/70 mb-0.5">Em aberto no mês</p>
+              <p className="font-display text-2xl text-status-paid-text">{formatCurrency(totalMesAberto)}</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-[10px] text-status-paid-text/70 border-t border-status-paid-text/20 pt-2">
+            <span>🔥 Queima: {formatCurrency(queimaMesPaid + queimaMesOpen + queimaMesClosed)}</span>
+            <span>🪨 Argila: {formatCurrency(argilaMesPaid + argilaMesOpen + argilaMesClosed)}</span>
+            <span>💎 Peça: {formatCurrency(pecaMesPaid + pecaMesOpen)}</span>
+            <span>🎓 Pacote: {formatCurrency(pacoteMesPaid + pacoteMesOpen + pacoteMesClosed)}</span>
+          </div>
         </div>
 
-        <Link href="/admin/pecas" className="block bg-white rounded-xl shadow-card p-4 space-y-3">
-          <div className="flex items-center gap-2">
-            <span className="text-base">🔥</span>
-            <p className="text-xs font-medium tracking-widest uppercase text-brand-muted">Queima</p>
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            <div>
-              <p className="text-[10px] text-brand-muted mb-0.5">Em aberto</p>
-              <p className="font-display text-sm text-status-open-text">{formatCurrency(queimaOpen)}</p>
-            </div>
-            <div>
-              <p className="text-[10px] text-brand-muted mb-0.5">Aguardando</p>
-              <p className="font-display text-sm text-status-closed-text">{formatCurrency(queimaClosed)}</p>
-            </div>
-            <div>
-              <p className="text-[10px] text-brand-muted mb-0.5">Pagas</p>
-              <p className="font-display text-sm text-status-paid-text">{formatCurrency(queimaPaid)}</p>
-            </div>
-          </div>
-        </Link>
-
-        <Link href="/admin/argila" className="block bg-white rounded-xl shadow-card p-4 space-y-3">
-          <div className="flex items-center gap-2">
-            <span className="text-base">🪨</span>
-            <p className="text-xs font-medium tracking-widest uppercase text-brand-muted">Argila</p>
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            <div>
-              <p className="text-[10px] text-brand-muted mb-0.5">Em aberto</p>
-              <p className="font-display text-sm text-status-open-text">{formatCurrency(argilaOpen)}</p>
-            </div>
-            <div>
-              <p className="text-[10px] text-brand-muted mb-0.5">Aguardando</p>
-              <p className="font-display text-sm text-status-closed-text">{formatCurrency(argilaClosed)}</p>
-            </div>
-            <div>
-              <p className="text-[10px] text-brand-muted mb-0.5">Paga</p>
-              <p className="font-display text-sm text-status-paid-text">{formatCurrency(argilaPaid)}</p>
-            </div>
-          </div>
-        </Link>
-
-        <Link href="/admin/financeiro/pecas-avulsas/nova" className="block bg-white rounded-xl shadow-card p-4 space-y-3">
-          <div className="flex items-center gap-2">
-            <span className="text-base">💎</span>
-            <p className="text-xs font-medium tracking-widest uppercase text-brand-muted">Peça</p>
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            <div>
-              <p className="text-[10px] text-brand-muted mb-0.5">Em aberto</p>
-              <p className="font-display text-sm text-status-open-text">{formatCurrency(pecaOpen)}</p>
-            </div>
-            <div>
-              <p className="text-[10px] text-brand-muted mb-0.5">Aguardando</p>
-              <p className="font-display text-sm text-status-closed-text">{formatCurrency(pecaClosed)}</p>
-            </div>
-            <div>
-              <p className="text-[10px] text-brand-muted mb-0.5">Pagas</p>
-              <p className="font-display text-sm text-status-paid-text">{formatCurrency(pecaPaid)}</p>
-            </div>
-          </div>
-        </Link>
-
-        <Link href="/admin/fechamentos/pacote" className="block bg-white rounded-xl shadow-card p-4 space-y-3">
-          <div className="flex items-center gap-2">
-            <span className="text-base">🎓</span>
-            <p className="text-xs font-medium tracking-widest uppercase text-brand-muted">Aula (Pacote)</p>
-          </div>
-          <div className="grid grid-cols-3 gap-2">
-            <div>
-              <p className="text-[10px] text-brand-muted mb-0.5">Aguardando</p>
-              <p className="font-display text-sm text-status-open-text">{formatCurrency(pacoteOpen)}</p>
-            </div>
-            <div>
-              <p className="text-[10px] text-brand-muted mb-0.5">No fechamento</p>
-              <p className="font-display text-sm text-status-closed-text">{formatCurrency(pacoteClosed)}</p>
-            </div>
-            <div>
-              <p className="text-[10px] text-brand-muted mb-0.5">Pago</p>
-              <p className="font-display text-sm text-status-paid-text">{formatCurrency(pacotePaid)}</p>
-            </div>
-          </div>
-        </Link>
-
-        <Link href="/admin/fechamentos" className="block bg-brand-blush rounded-xl shadow-card p-4 space-y-3">
-          <div className="flex items-center gap-2">
-            <span className="text-base">📋</span>
-            <p className="text-xs font-medium tracking-widest uppercase text-brand-mauve">Fechamentos</p>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <p className="text-[10px] text-brand-mauve/70 mb-0.5">Aguardando</p>
-              <p className="font-display text-sm text-brand-mauve">{formatCurrency(fechOpen)}</p>
-            </div>
-            <div>
-              <p className="text-[10px] text-brand-mauve/70 mb-0.5">Pago</p>
-              <p className="font-display text-sm text-brand-mauve">{formatCurrency(fechPaid)}</p>
-            </div>
-          </div>
-        </Link>
+        {/* Acumulado histórico — resumo compacto */}
+        <div className="bg-status-open-bg rounded-xl p-4 space-y-1">
+          <p className="text-xs font-medium tracking-widest uppercase text-status-open-text">💸 Total voando (acumulado)</p>
+          <p className="font-display text-3xl text-status-open-text">{formatCurrency(totalHistoricoAberto)}</p>
+          <p className="text-[10px] text-status-open-text/70">
+            Tudo em aberto (histórico) · Já pago: {formatCurrency(totalHistoricoPago)}
+          </p>
+        </div>
 
         <div className="grid grid-cols-2 gap-3">
           <Link href="/admin/agenda" className="bg-white rounded-xl p-4 shadow-card">
