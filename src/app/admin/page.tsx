@@ -12,6 +12,9 @@ export default async function AdminDashboardPage() {
     { auth: { autoRefreshToken: false, persistSession: false } }
   )
   const today = new Date().toISOString().split('T')[0]
+  const now = new Date()
+  const mesInicio = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
+  const mesFim = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0]
 
   const [
     { data: pecas },
@@ -20,6 +23,9 @@ export default async function AdminDashboardPage() {
     { data: pacotes },
     { count: todaySlots },
     { count: activeStudents },
+    { data: pecasMes },
+    { data: argilasMes },
+    { data: pacotesMes },
   ] = await Promise.all([
     supabase.from('pieces').select('calculated_value, status, firing_types(name)'),
     supabase.from('clay_sales').select('total_value, status'),
@@ -31,6 +37,14 @@ export default async function AdminDashboardPage() {
       .eq('is_blocked', false),
     supabase.from('profiles').select('*', { count: 'exact', head: true })
       .eq('role', 'student').eq('status', 'active'),
+    supabase.from('pieces').select('calculated_value, status, firing_types(name)')
+      .gte('piece_date', mesInicio).lte('piece_date', mesFim),
+    supabase.from('clay_sales').select('total_value, status')
+      .gte('sale_date', mesInicio).lte('sale_date', mesFim),
+    supabase.from('package_charges').select('value, status')
+      .neq('status', 'cancelled')
+      .gte('created_at', `${mesInicio}T00:00:00`)
+      .lte('created_at', `${mesFim}T23:59:59`),
   ])
 
   const NOMES_VENDA_AVULSA = ['Venda livre (sem cálculo)', 'Venda Loja', 'Venda Site', 'Venda Encomenda']
@@ -52,6 +66,20 @@ const isVendaLivre = (p: any) => NOMES_VENDA_AVULSA.includes((p.firing_types as 
 
   const fechOpen = (fechamentos ?? []).filter(f => f.status === 'awaiting_payment').reduce((s, f) => s + f.total_value, 0)
   const fechPaid = (fechamentos ?? []).filter(f => f.status === 'paid').reduce((s, f) => s + f.total_value, 0)
+
+  // Mês vigente
+  const queimaMes = (pecasMes ?? []).filter(p => !isVendaLivre(p))
+  const pecasMesAvulsas = (pecasMes ?? []).filter(p => isVendaLivre(p))
+  const queimaMesPaid = queimaMes.filter(p => p.status === 'paid').reduce((s, p) => s + p.calculated_value, 0)
+  const queimaMesOpen = queimaMes.filter(p => p.status === 'open').reduce((s, p) => s + p.calculated_value, 0)
+  const pecaMesPaid = pecasMesAvulsas.filter(p => p.status === 'paid').reduce((s, p) => s + p.calculated_value, 0)
+  const pecaMesOpen = pecasMesAvulsas.filter(p => p.status === 'open').reduce((s, p) => s + p.calculated_value, 0)
+  const argilaMesPaid = (argilasMes ?? []).filter(a => a.status === 'paid').reduce((s, a) => s + a.total_value, 0)
+  const argilaMesOpen = (argilasMes ?? []).filter(a => a.status === 'open').reduce((s, a) => s + a.total_value, 0)
+  const pacoteMesPaid = (pacotesMes ?? []).filter(p => p.status === 'paid').reduce((s, p) => s + p.value, 0)
+  const pacoteMesOpen = (pacotesMes ?? []).filter(p => p.status === 'awaiting_payment').reduce((s, p) => s + p.value, 0)
+  const totalMesPago = queimaMesPaid + pecaMesPaid + argilaMesPaid + pacoteMesPaid
+  const totalMesAberto = queimaMesOpen + pecaMesOpen + argilaMesOpen + pacoteMesOpen
 
   const pacoteOpen   = (pacotes ?? []).filter(p => p.status === 'awaiting_payment').reduce((s, p) => s + p.value, 0)
   const pacoteClosed = (pacotes ?? []).filter(p => p.status === 'closed').reduce((s, p) => s + p.value, 0)
