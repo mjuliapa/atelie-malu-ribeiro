@@ -140,14 +140,15 @@ export default function RelatoriosPage() {
       }
 
       y += 8
-      if (y > 240) { doc.addPage(); y = 20 }
+      // garante espaço pra todos os cards (4 cards × ~20px + breakdown ~35px = ~115px)
+      if (y > 170) { doc.addPage(); y = 20 }
 
       doc.setFillColor('#E0B05A')
       doc.roundedRect(margin, y, pageW - margin * 2, 16, 3, 3, 'F')
       doc.setFont('helvetica', 'bold')
       doc.setFontSize(9)
       doc.setTextColor(WHITE)
-      doc.text('EM ABERTO (ainda não recebido)', margin + 6, y + 6.5)
+      doc.text('EM ABERTO (ainda nao recebido)', margin + 6, y + 6.5)
       doc.setFontSize(12)
       doc.text(formatCurrency(data.totalGeral.aguardando), margin + 6, y + 13)
       y += 20
@@ -170,6 +171,16 @@ export default function RelatoriosPage() {
       doc.text('FLUXO DE CAIXA REAL (recebido - custos pagos)', margin + 6, y + 6.5)
       doc.setFontSize(12)
       doc.text(formatCurrency(data.totalGeral.pago - data.totalGeral.custos), margin + 6, y + 13)
+      y += 20
+
+      doc.setFillColor(MAUVE)
+      doc.roundedRect(margin, y, pageW - margin * 2, 16, 3, 3, 'F')
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(9)
+      doc.setTextColor(WHITE)
+      doc.text('RESULTADO SE TUDO FOSSE PAGO (competencia)', margin + 6, y + 6.5)
+      doc.setFontSize(12)
+      doc.text(formatCurrency(data.totalGeral.total), margin + 6, y + 13)
       y += 24
 
       doc.setFillColor(BLUSH)
@@ -191,7 +202,7 @@ export default function RelatoriosPage() {
         doc.text('Custos', margin + 6, y + 25)
         doc.setFont('helvetica', 'bold')
         doc.setTextColor('#B0524F')
-        doc.text(`− ${formatCurrency(data.totalGeral.custos)}`, pageW - margin - 6, y + 25, { align: 'right' })
+        doc.text(`- ${formatCurrency(data.totalGeral.custos)}`, pageW - margin - 6, y + 25, { align: 'right' })
       }
 
     } else {
