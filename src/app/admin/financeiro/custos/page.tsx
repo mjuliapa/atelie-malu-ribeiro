@@ -37,9 +37,24 @@ export default function CustosPage() {
   const [filter, setFilter] = useState<'all' | 'produtos' | 'operacional' | 'investimento'>('all')
   const [loading, setLoading] = useState(true)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [mesRef, setMesRef] = useState(() => {
+    const now = new Date()
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  })
 
-  const from = getFirstDayOfMonth()
-  const to = getLastDayOfMonth()
+  const [anoStr, mesStr] = mesRef.split('-')
+  const ano = parseInt(anoStr), mes = parseInt(mesStr) - 1
+  const from = new Date(ano, mes, 1).toISOString().split('T')[0]
+  const to = new Date(ano, mes + 1, 0).toISOString().split('T')[0]
+
+  function mesAnterior() {
+    const d = new Date(ano, mes - 1, 1)
+    setMesRef(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
+  }
+  function mesProximo() {
+    const d = new Date(ano, mes + 1, 1)
+    setMesRef(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
+  }
 
   function load() {
     setLoading(true)
@@ -77,7 +92,19 @@ export default function CustosPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="font-display text-2xl text-brand-text">Custos</h1>
-            <p className="text-sm text-brand-muted">{formatDate(from, "MMMM 'de' yyyy")}</p>
+            <div className="flex items-center gap-2 mt-1">
+              <button onClick={mesAnterior} className="p-1 text-brand-muted hover:text-brand-text">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4">
+                  <polyline points="15 18 9 12 15 6" />
+                </svg>
+              </button>
+              <p className="text-sm text-brand-muted">{formatDate(from, "MMMM 'de' yyyy")}</p>
+              <button onClick={mesProximo} className="p-1 text-brand-muted hover:text-brand-text">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4">
+                  <polyline points="9 18 15 12 9 6" />
+                </svg>
+              </button>
+            </div>
           </div>
           <Link href="/admin/financeiro/custos/novo" className="bg-brand-ink text-brand-cream px-4 py-2 rounded-xl text-sm font-medium">
             + Novo custo
