@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     const userExists = users?.users?.some((u) => u.email === email)
 
     if (!userExists) {
-      const src/app/api/admin/debug-find-aluna/route.ts{ data: newUser, error: createError } = await admin.auth.admin.createUser({
+      const { data: newUser, error: createError } = await admin.auth.admin.createUser({
         email,
         email_confirm: true,
       })
