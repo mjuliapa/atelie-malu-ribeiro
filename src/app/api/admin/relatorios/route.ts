@@ -49,15 +49,30 @@ export async function GET(request: NextRequest) {
   if (studentId) pacotesQuery = pacotesQuery.eq('student_id', studentId)
   const { data: pacotes } = await pacotesQuery
 
-  // Custos (gravados na mesma tabela package_charges, status 'cancelled', prefixo custo:)
-  let custosQuery = supabase
+  // Custos do período
+  const { data: custosNoPeriodo } = await supabase
     .from('package_charges')
     .select('id, value, created_at, package_type')
     .gte('created_at', `${from}T00:00:00`)
     .lte('created_at', `${to}T23:59:59`)
     .like('package_type', 'custo:%')
-  const { data: custosRows } = await custosQuery
-  const totalCustos = (custosRows ?? []).reduce((s, c) => s + c.value, 0)
+
+  // Custos fixos recorrentes fora do período (criados antes)
+  const { data: custosRecorrentes } = await supabase
+    .from('package_charges')
+    .select('id, value, created_at, package_type')
+    .lt('created_at', `${from}T00:00:00`)
+    .like('package_type', 'custo:%')
+
+  const custosRecorrentesAtivos = (custosRecorrentes ?? []).filter(c => {
+    try {
+      const meta = JSON.parse(c.package_type.replace('custo:', ''))
+      return meta.recorrente === true
+    } catch { return false }
+  })
+
+  const custosRows = [...(custosNoPeriodo ?? []), ...custosRecorrentesAtivos]
+  const totalCustos = custosRows.reduce((s, c) => s + c.value, 0)
 
   // Busca fechamentos no período
   let fechamentosQuery = supabase
