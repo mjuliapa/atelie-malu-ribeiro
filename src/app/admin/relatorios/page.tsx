@@ -178,7 +178,7 @@ export default function RelatoriosPage() {
       doc.setFont('helvetica', 'bold')
       doc.setFontSize(9)
       doc.setTextColor(WHITE)
-      doc.text('RESULTADO SE TUDO FOSSE PAGO (competencia)', margin + 6, y + 6.5)
+      doc.text('RESULTADO SE TUDO FOSSE PAGO (competência)', margin + 6, y + 6.5)
       doc.setFontSize(12)
       doc.text(formatCurrency(data.totalGeral.total), margin + 6, y + 13)
       y += 24
