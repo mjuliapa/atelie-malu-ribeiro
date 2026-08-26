@@ -27,61 +27,70 @@ export default async function AdminDashboardPage() {
     { data: argilasMes },
     { data: pacotesMes },
   ] = await Promise.all([
-    supabase.from('pieces').select('calculated_value, status, firing_types(name)'),
-    supabase.from('clay_sales').select('total_value, status'),
+    supabase.from('pieces').select('student_id, calculated_value, status, firing_types(name)'),
+    supabase.from('clay_sales').select('student_id, total_value, status'),
     supabase.from('monthly_closings').select('total_value, status'),
-    supabase.from('package_charges').select('value, status').neq('status', 'cancelled'),
+    supabase.from('package_charges').select('student_id, value, status').neq('status', 'cancelled'),
     supabase.from('schedule_slots').select('*', { count: 'exact', head: true })
       .gte('start_time', `${today}T00:00:00`)
       .lte('start_time', `${today}T23:59:59`)
       .eq('is_blocked', false),
     supabase.from('profiles').select('*', { count: 'exact', head: true })
       .eq('role', 'student').eq('status', 'active'),
-    supabase.from('pieces').select('calculated_value, status, firing_types(name)')
+    supabase.from('pieces').select('student_id, calculated_value, status, firing_types(name)')
       .gte('piece_date', mesInicio).lte('piece_date', mesFim),
-    supabase.from('clay_sales').select('total_value, status')
+    supabase.from('clay_sales').select('student_id, total_value, status')
       .gte('sale_date', mesInicio).lte('sale_date', mesFim),
-    supabase.from('package_charges').select('value, status')
+    supabase.from('package_charges').select('student_id, value, status')
       .neq('status', 'cancelled')
       .gte('created_at', `${mesInicio}T00:00:00`)
       .lte('created_at', `${mesFim}T23:59:59`),
   ])
 
+  // Mesmo id usado em relatorios/route.ts — exclui a própria Malu dos totais de receita
+  const ADMIN_ID = 'afc3ca0e-6ee7-48b8-9eec-2d7abb509554'
   const NOMES_VENDA_AVULSA = ['Venda livre (sem cálculo)', 'Venda Loja', 'Venda Site', 'Venda Encomenda']
   const isVendaLivre = (p: any) => NOMES_VENDA_AVULSA.includes((p.firing_types as any)?.name)
 
-  // Mês vigente
-  const queimaMes = (pecasMes ?? []).filter(p => !isVendaLivre(p))
-  const pecasMesAvulsas = (pecasMes ?? []).filter(p => isVendaLivre(p))
+  // Mês vigente (mesmo critério do relatório: exclui a admin, filtra por piece_date/sale_date/created_at)
+  const pecasMesSemAdmin = (pecasMes ?? []).filter(p => p.student_id !== ADMIN_ID)
+  const argilasMesSemAdmin = (argilasMes ?? []).filter(a => a.student_id !== ADMIN_ID)
+  const pacotesMesSemAdmin = (pacotesMes ?? []).filter(p => p.student_id !== ADMIN_ID)
+
+  const queimaMes = pecasMesSemAdmin.filter(p => !isVendaLivre(p))
+  const pecasMesAvulsas = pecasMesSemAdmin.filter(p => isVendaLivre(p))
   const queimaMesPaid = queimaMes.filter(p => p.status === 'paid').reduce((s, p) => s + p.calculated_value, 0)
   const queimaMesOpen = queimaMes.filter(p => p.status === 'open').reduce((s, p) => s + p.calculated_value, 0)
   const queimaMesClosed = queimaMes.filter(p => p.status === 'closed').reduce((s, p) => s + p.calculated_value, 0)
   const pecaMesPaid = pecasMesAvulsas.filter(p => p.status === 'paid').reduce((s, p) => s + p.calculated_value, 0)
   const pecaMesOpen = pecasMesAvulsas.filter(p => p.status === 'open').reduce((s, p) => s + p.calculated_value, 0)
-  const argilaMesPaid = (argilasMes ?? []).filter(a => a.status === 'paid').reduce((s, a) => s + a.total_value, 0)
-  const argilaMesOpen = (argilasMes ?? []).filter(a => a.status === 'open').reduce((s, a) => s + a.total_value, 0)
-  const argilaMesClosed = (argilasMes ?? []).filter(a => a.status === 'closed').reduce((s, a) => s + a.total_value, 0)
-  const pacoteMesPaid = (pacotesMes ?? []).filter(p => p.status === 'paid').reduce((s, p) => s + p.value, 0)
-  const pacoteMesOpen = (pacotesMes ?? []).filter(p => p.status === 'awaiting_payment').reduce((s, p) => s + p.value, 0)
-  const pacoteMesClosed = (pacotesMes ?? []).filter(p => p.status === 'closed').reduce((s, p) => s + p.value, 0)
+  const argilaMesPaid = argilasMesSemAdmin.filter(a => a.status === 'paid').reduce((s, a) => s + a.total_value, 0)
+  const argilaMesOpen = argilasMesSemAdmin.filter(a => a.status === 'open').reduce((s, a) => s + a.total_value, 0)
+  const argilaMesClosed = argilasMesSemAdmin.filter(a => a.status === 'closed').reduce((s, a) => s + a.total_value, 0)
+  const pacoteMesPaid = pacotesMesSemAdmin.filter(p => p.status === 'paid').reduce((s, p) => s + p.value, 0)
+  const pacoteMesOpen = pacotesMesSemAdmin.filter(p => p.status === 'awaiting_payment').reduce((s, p) => s + p.value, 0)
+  const pacoteMesClosed = pacotesMesSemAdmin.filter(p => p.status === 'closed').reduce((s, p) => s + p.value, 0)
 
   const totalMesPago = queimaMesPaid + pecaMesPaid + argilaMesPaid + pacoteMesPaid
   const totalMesAberto = queimaMesOpen + pecaMesOpen + argilaMesOpen + pacoteMesOpen + queimaMesClosed + argilaMesClosed + pacoteMesClosed
 
-  // Acumulado histórico
-  const queimas = (pecas ?? []).filter(p => !isVendaLivre(p))
-  const pecasAvulsas = (pecas ?? []).filter(p => isVendaLivre(p))
+  // Acumulado histórico (mesmo critério: exclui a admin)
+  const pecasSemAdmin = (pecas ?? []).filter(p => p.student_id !== ADMIN_ID)
+  const argilasSemAdmin = (argilas ?? []).filter(a => a.student_id !== ADMIN_ID)
+  const pacotesSemAdmin = (pacotes ?? []).filter(p => p.student_id !== ADMIN_ID)
+  const queimas = pecasSemAdmin.filter(p => !isVendaLivre(p))
+  const pecasAvulsas = pecasSemAdmin.filter(p => isVendaLivre(p))
   const totalHistoricoAberto =
     queimas.filter(p => p.status === 'open').reduce((s, p) => s + p.calculated_value, 0) +
     pecasAvulsas.filter(p => p.status === 'open').reduce((s, p) => s + p.calculated_value, 0) +
-    (argilas ?? []).filter(a => a.status === 'open').reduce((s, a) => s + a.total_value, 0) +
-    (pacotes ?? []).filter(p => p.status === 'awaiting_payment').reduce((s, p) => s + p.value, 0) +
+    argilasSemAdmin.filter(a => a.status === 'open').reduce((s, a) => s + a.total_value, 0) +
+    pacotesSemAdmin.filter(p => p.status === 'awaiting_payment').reduce((s, p) => s + p.value, 0) +
     (fechamentos ?? []).filter(f => f.status === 'awaiting_payment').reduce((s, f) => s + f.total_value, 0)
   const totalHistoricoPago =
     queimas.filter(p => p.status === 'paid').reduce((s, p) => s + p.calculated_value, 0) +
     pecasAvulsas.filter(p => p.status === 'paid').reduce((s, p) => s + p.calculated_value, 0) +
-    (argilas ?? []).filter(a => a.status === 'paid').reduce((s, a) => s + a.total_value, 0) +
-    (pacotes ?? []).filter(p => p.status === 'paid').reduce((s, p) => s + p.value, 0)
+    argilasSemAdmin.filter(a => a.status === 'paid').reduce((s, a) => s + a.total_value, 0) +
+    pacotesSemAdmin.filter(p => p.status === 'paid').reduce((s, p) => s + p.value, 0)
 
   return (
     <>

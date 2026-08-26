@@ -3,6 +3,28 @@ import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 
 const SECRET = 'malu-migrate-2026'
 
+// Converte um timestamptz (ISO, UTC) pra data (yyyy-MM-dd) no horário de Brasília (UTC-3, sem horário de verão)
+function toBRTDateStr(iso: string) {
+  const d = new Date(iso)
+  const shifted = new Date(d.getTime() - 3 * 3600 * 1000)
+  const y = shifted.getUTCFullYear()
+  const m = String(shifted.getUTCMonth() + 1).padStart(2, '0')
+  const day = String(shifted.getUTCDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
+function addDaysBRT(dateStr: string, days: number) {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  const dt = new Date(Date.UTC(y, m - 1, d))
+  dt.setUTCDate(dt.getUTCDate() + days)
+  return dt.toISOString().slice(0, 10)
+}
+
+function dowFromDateStrBRT(dateStr: string) {
+  const [y, m, d] = dateStr.split('-').map(Number)
+  return new Date(Date.UTC(y, m - 1, d)).getUTCDay()
+}
+
 function getSupabase() {
   return createSupabaseClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -12,7 +34,8 @@ function getSupabase() {
 }
 
 export async function POST(request: NextRequest) {
-  const { secret, action } = await request.json()
+  const body = await request.json()
+  const { secret, action } = body
   if (secret !== SECRET) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const supabase = getSupabase()
@@ -184,5 +207,120 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ data, error: error?.message })
   }
   
+  if (action === 'check_ultima_aula') {
+    const { data: ultima, error } = await supabase
+      .from('schedule_slots')
+      .select('id, start_time, end_time')
+      .order('start_time', { ascending: false })
+      .limit(1)
+
+    const { count } = await supabase
+      .from('schedule_slots')
+      .select('id', { count: 'exact', head: true })
+
+    return NextResponse.json({
+      ultima_aula: ultima?.[0] ?? null,
+      ultima_aula_brt: ultima?.[0] ? toBRTDateStr(ultima[0].start_time) : null,
+      total_slots: count,
+      error: error?.message,
+    })
+  }
+
+  if (action === 'criar_slots_semanais') {
+    // Padrão confirmado: seg-sex 9h/14h/18h, sáb 9h/14h, dom 9h (horário de Brasília, UTC-3)
+    const HORARIOS_POR_DIA: Record<number, string[]> = {
+      0: ['09:00'],                   // domingo
+      1: ['09:00', '14:00', '18:00'], // segunda
+      2: ['09:00', '14:00', '18:00'], // terça
+      3: ['09:00', '14:00', '18:00'], // quarta
+      4: ['09:00', '14:00', '18:00'], // quinta
+      5: ['09:00', '14:00', '18:00'], // sexta
+      6: ['09:00', '14:00'],          // sábado
+    }
+    const MAX_STUDENTS = 8
+    const TORNO_SPOTS = 1
+    const FIXED_DURATION_MIN = 150 // 2h30, igual ao padrão de criação manual
+
+    const ate = (typeof body?.ate === 'string' && body.ate) || '2026-12-31'
+    const dryRun = body?.dry_run === true
+
+    const { data: ultima } = await supabase
+      .from('schedule_slots')
+      .select('start_time')
+      .order('start_time', { ascending: false })
+      .limit(1)
+
+    const desdeParam = typeof body?.desde === 'string' && body.desde ? body.desde : null
+    let cursor = desdeParam
+      ?? (ultima?.[0]?.start_time ? addDaysBRT(toBRTDateStr(ultima[0].start_time), 1) : toBRTDateStr(new Date().toISOString()))
+
+    if (cursor > ate) {
+      return NextResponse.json({
+        message: 'Nada a criar: data de início já é posterior à data final.',
+        desde: cursor,
+        ate,
+        ultima_aula_atual: ultima?.[0]?.start_time ?? null,
+      })
+    }
+
+    // Busca slots já existentes no intervalo, pra não duplicar em caso de reexecução
+    const { data: existentes } = await supabase
+      .from('schedule_slots')
+      .select('start_time')
+      .gte('start_time', `${cursor}T00:00:00-03:00`)
+      .lte('start_time', `${ate}T23:59:59-03:00`)
+
+    const existentesSet = new Set((existentes ?? []).map(s => new Date(s.start_time).toISOString()))
+
+    const novosSlots: { start_time: string; end_time: string; max_students: number; torno_spots: number; is_blocked: boolean }[] = []
+    const primeiroDia = cursor
+    while (cursor <= ate) {
+      const dow = dowFromDateStrBRT(cursor)
+      const horarios = HORARIOS_POR_DIA[dow] ?? []
+      for (const hh of horarios) {
+        const startISO = `${cursor}T${hh}:00-03:00`
+        const startDate = new Date(startISO)
+        const isoCheck = startDate.toISOString()
+        if (existentesSet.has(isoCheck)) continue
+
+        const endDate = new Date(startDate.getTime() + FIXED_DURATION_MIN * 60000)
+        novosSlots.push({
+          start_time: startDate.toISOString(),
+          end_time: endDate.toISOString(),
+          max_students: MAX_STUDENTS,
+          torno_spots: TORNO_SPOTS,
+          is_blocked: false,
+        })
+      }
+      cursor = addDaysBRT(cursor, 1)
+    }
+
+    if (dryRun) {
+      return NextResponse.json({
+        dry_run: true,
+        desde: primeiroDia,
+        ate,
+        a_criar: novosSlots.length,
+        amostra: novosSlots.slice(0, 6),
+      })
+    }
+
+    if (!novosSlots.length) {
+      return NextResponse.json({ criados: 0, desde: primeiroDia, ate, message: 'Nenhum slot novo (já existiam todos).' })
+    }
+
+    const { data: inseridos, error } = await supabase
+      .from('schedule_slots')
+      .insert(novosSlots)
+      .select('id')
+
+    return NextResponse.json({
+      criados: inseridos?.length ?? 0,
+      desde: primeiroDia,
+      ate,
+      error: error?.message,
+    })
+  }
+
   return NextResponse.json({ error: 'action inválida' }, { status: 400 })
 }
