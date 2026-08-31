@@ -227,14 +227,14 @@ export async function POST(request: NextRequest) {
   }
 
   if (action === 'criar_slots_semanais') {
-    // Padrão confirmado: seg-sex 9h/14h/18h, sáb 9h/14h, dom 9h (horário de Brasília, UTC-3)
+    // Padrão confirmado (corrigido em 26/08): seg/ter/qua 9h/14h/16h30, qui 9h/14h/18h, sex 9h/14h, sáb 9h/14h, dom 9h30 (BRT)
     const HORARIOS_POR_DIA: Record<number, string[]> = {
-      0: ['09:00'],                   // domingo
-      1: ['09:00', '14:00', '18:00'], // segunda
-      2: ['09:00', '14:00', '18:00'], // terça
-      3: ['09:00', '14:00', '18:00'], // quarta
+      0: ['09:30'],                   // domingo
+      1: ['09:00', '14:00', '16:30'], // segunda
+      2: ['09:00', '14:00', '16:30'], // terça
+      3: ['09:00', '14:00', '16:30'], // quarta
       4: ['09:00', '14:00', '18:00'], // quinta
-      5: ['09:00', '14:00', '18:00'], // sexta
+      5: ['09:00', '14:00'],          // sexta
       6: ['09:00', '14:00'],          // sábado
     }
     const MAX_STUDENTS = 8
@@ -318,6 +318,105 @@ export async function POST(request: NextRequest) {
       criados: inseridos?.length ?? 0,
       desde: primeiroDia,
       ate,
+      error: error?.message,
+    })
+  }
+
+  if (action === 'corrigir_horarios_pos_data') {
+    // Corrige o padrão de horários a partir de uma data: apaga o que estava errado (sem agendamento
+    // confirmado) e recria com o padrão certo. NUNCA apaga slot com aluna confirmada — esses ficam
+    // de fora e voltam na resposta em "mantidos_por_agendamento" pra revisão manual.
+    const HORARIOS_POR_DIA: Record<number, string[]> = {
+      0: ['09:30'],                   // domingo
+      1: ['09:00', '14:00', '16:30'], // segunda
+      2: ['09:00', '14:00', '16:30'], // terça
+      3: ['09:00', '14:00', '16:30'], // quarta
+      4: ['09:00', '14:00', '18:00'], // quinta
+      5: ['09:00', '14:00'],          // sexta
+      6: ['09:00', '14:00'],          // sábado
+    }
+    const MAX_STUDENTS = 8
+    const TORNO_SPOTS = 1
+    const FIXED_DURATION_MIN = 150
+
+    const desde = (typeof body?.desde === 'string' && body.desde) || '2026-09-21'
+    const dryRun = body?.dry_run === true
+
+    let ate = typeof body?.ate === 'string' && body.ate ? body.ate : null
+    if (!ate) {
+      const { data: ultima } = await supabase
+        .from('schedule_slots')
+        .select('start_time')
+        .order('start_time', { ascending: false })
+        .limit(1)
+      ate = ultima?.[0]?.start_time ? toBRTDateStr(ultima[0].start_time) : desde
+    }
+
+    const { data: existentes } = await supabase
+      .from('schedule_slots')
+      .select('id, start_time')
+      .gte('start_time', `${desde}T00:00:00-03:00`)
+      .lte('start_time', `${ate}T23:59:59-03:00`)
+
+    const idsExistentes = (existentes ?? []).map(s => s.id)
+    const { data: appts } = idsExistentes.length
+      ? await supabase.from('appointments').select('slot_id').in('slot_id', idsExistentes).eq('status', 'confirmed')
+      : { data: [] as { slot_id: string }[] }
+    const idsComAgendamento = new Set((appts ?? []).map(a => a.slot_id))
+
+    const paraApagar = (existentes ?? []).filter(s => !idsComAgendamento.has(s.id)).map(s => s.id)
+    const mantidos = (existentes ?? []).filter(s => idsComAgendamento.has(s.id))
+
+    if (dryRun) {
+      return NextResponse.json({
+        dry_run: true,
+        desde,
+        ate,
+        a_apagar: paraApagar.length,
+        mantidos_por_agendamento: mantidos.map(s => s.start_time),
+      })
+    }
+
+    if (paraApagar.length) {
+      const { error: delError } = await supabase.from('schedule_slots').delete().in('id', paraApagar)
+      if (delError) return NextResponse.json({ error: delError.message }, { status: 400 })
+    }
+
+    const existentesSet = new Set(mantidos.map(s => new Date(s.start_time).toISOString()))
+
+    const novosSlots: { start_time: string; end_time: string; max_students: number; torno_spots: number; is_blocked: boolean }[] = []
+    let cursor = desde
+    while (cursor <= ate) {
+      const dow = dowFromDateStrBRT(cursor)
+      const horarios = HORARIOS_POR_DIA[dow] ?? []
+      for (const hh of horarios) {
+        const startDate = new Date(`${cursor}T${hh}:00-03:00`)
+        const isoCheck = startDate.toISOString()
+        if (existentesSet.has(isoCheck)) continue
+
+        const endDate = new Date(startDate.getTime() + FIXED_DURATION_MIN * 60000)
+        novosSlots.push({
+          start_time: startDate.toISOString(),
+          end_time: endDate.toISOString(),
+          max_students: MAX_STUDENTS,
+          torno_spots: TORNO_SPOTS,
+          is_blocked: false,
+        })
+      }
+      cursor = addDaysBRT(cursor, 1)
+    }
+
+    const { data: inseridos, error } = novosSlots.length
+      ? await supabase.from('schedule_slots').insert(novosSlots).select('id')
+      : { data: [] as { id: string }[], error: null }
+
+    return NextResponse.json({
+      desde,
+      ate,
+      apagados: paraApagar.length,
+      mantidos_por_agendamento: mantidos.length,
+      mantidos_horarios: mantidos.map(s => s.start_time),
+      criados: inseridos?.length ?? 0,
       error: error?.message,
     })
   }
