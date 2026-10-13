@@ -63,6 +63,17 @@ const adminNavItems = [
     ),
   },
   {
+    href: '/admin/estoque-argila',
+    label: 'Estoque',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-5 h-5">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+        <polyline strokeLinecap="round" strokeLinejoin="round" points="3.27 6.96 12 12.01 20.73 6.96" />
+        <line x1="12" y1="22.08" x2="12" y2="12" strokeLinecap="round" />
+      </svg>
+    ),
+  },
+  {
     href: '/admin/relatorios',
     label: 'Relatórios',
     icon: (
@@ -91,14 +102,14 @@ export function AdminNavBottom() {
               key={item.href}
               href={item.href}
               className={cn(
-                'flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-colors min-w-[56px]',
+                'flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl transition-colors min-w-[44px]',
                 isActive
                   ? 'text-brand-mauve'
                   : 'text-brand-muted hover:text-brand-text'
               )}
             >
               {item.icon}
-              <span className={cn('text-[10px] font-medium', isActive && 'text-brand-mauve')}>
+              <span className={cn('text-[9px] font-medium', isActive && 'text-brand-mauve')}>
                 {item.label}
               </span>
             </Link>

@@ -12,29 +12,18 @@ type RelatorioData = {
   argilas: any[]
   pacotes: any[]
   fechamentos: any[]
+  fechamentosPagos: any[]
   resumoPorAluna: {
-    student_id: string
-    nome: string
-    totalPecas: number
-    totalArgila: number
-    totalPacotes: number
-    totalGeral: number
-    totalPago: number
-    totalAberto: number
-    totalAguardando: number
-    totalFechamento: number
+    student_id: string; nome: string
+    totalPecas: number; totalArgila: number; totalPacotes: number
+    totalGeral: number; totalPago: number; totalAberto: number
+    totalAguardando: number; totalFechamento: number
   }[]
   porCanal: Record<string, { aguardando: number; fechamento: number; pago: number; total: number }>
   totalGeral: {
-    pecas: number
-    argila: number
-    pacotes: number
-    custos: number
-    pago: number
-    aberto: number
-    fechamento: number
-    aguardando: number
-    total: number
+    pecas: number; argila: number; pacotes: number; custos: number
+    recebido: number; pago: number; aberto: number
+    fechamento: number; aguardando: number; total: number; fluxoCaixa: number
   }
 }
 
@@ -140,37 +129,26 @@ export default function RelatoriosPage() {
       }
 
       y += 8
-      // garante espaço pra todos os cards (4 cards × ~20px + breakdown ~35px = ~115px)
       if (y > 170) { doc.addPage(); y = 20 }
-
-      doc.setFillColor('#E0B05A')
-      doc.roundedRect(margin, y, pageW - margin * 2, 16, 3, 3, 'F')
-      doc.setFont('helvetica', 'bold')
-      doc.setFontSize(9)
-      doc.setTextColor(WHITE)
-      doc.text('EM ABERTO (ainda nao recebido)', margin + 6, y + 6.5)
-      doc.setFontSize(12)
-      doc.text(formatCurrency(data.totalGeral.aguardando), margin + 6, y + 13)
-      y += 20
-
-      doc.setFillColor('#8C9DA8')
-      doc.roundedRect(margin, y, pageW - margin * 2, 16, 3, 3, 'F')
-      doc.setFont('helvetica', 'bold')
-      doc.setFontSize(9)
-      doc.setTextColor(WHITE)
-      doc.text('NO FECHAMENTO (aguardando pagamento)', margin + 6, y + 6.5)
-      doc.setFontSize(12)
-      doc.text(formatCurrency(data.totalGeral.fechamento), margin + 6, y + 13)
-      y += 20
 
       doc.setFillColor('#5FA08C')
       doc.roundedRect(margin, y, pageW - margin * 2, 16, 3, 3, 'F')
       doc.setFont('helvetica', 'bold')
       doc.setFontSize(9)
       doc.setTextColor(WHITE)
-      doc.text('FLUXO DE CAIXA REAL (recebido - custos pagos)', margin + 6, y + 6.5)
+      doc.text('FLUXO DE CAIXA REAL (recebido - custos)', margin + 6, y + 6.5)
       doc.setFontSize(12)
-      doc.text(formatCurrency(data.totalGeral.pago - data.totalGeral.custos), margin + 6, y + 13)
+      doc.text(formatCurrency(data.totalGeral.fluxoCaixa), margin + 6, y + 13)
+      y += 20
+
+      doc.setFillColor('#E0B05A')
+      doc.roundedRect(margin, y, pageW - margin * 2, 16, 3, 3, 'F')
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(9)
+      doc.setTextColor(WHITE)
+      doc.text('AGUARDANDO PAGAMENTO', margin + 6, y + 6.5)
+      doc.setFontSize(12)
+      doc.text(formatCurrency(data.totalGeral.aguardando), margin + 6, y + 13)
       y += 20
 
       doc.setFillColor(MAUVE)
@@ -178,7 +156,7 @@ export default function RelatoriosPage() {
       doc.setFont('helvetica', 'bold')
       doc.setFontSize(9)
       doc.setTextColor(WHITE)
-      doc.text('RESULTADO SE TUDO FOSSE PAGO (competência)', margin + 6, y + 6.5)
+      doc.text('RESULTADO SE TUDO FOSSE PAGO (competencia)', margin + 6, y + 6.5)
       doc.setFontSize(12)
       doc.text(formatCurrency(data.totalGeral.total), margin + 6, y + 13)
       y += 24
@@ -188,14 +166,14 @@ export default function RelatoriosPage() {
       doc.setFont('helvetica', 'normal')
       doc.setFontSize(8)
       doc.setTextColor(MUTED)
-      doc.text('Pecas', margin + 6, y + 7)
-      doc.text('Argila', margin + 6, y + 13)
-      doc.text('Pacotes', margin + 6, y + 19)
+      doc.text('Recebido no periodo', margin + 6, y + 7)
+      doc.text('Pecas', margin + 6, y + 13)
+      doc.text('Argila', margin + 6, y + 19)
       doc.setFont('helvetica', 'bold')
       doc.setTextColor(MAUVE_DARK)
-      doc.text(formatCurrency(data.totalGeral.pecas), pageW - margin - 6, y + 7, { align: 'right' })
-      doc.text(formatCurrency(data.totalGeral.argila), pageW - margin - 6, y + 13, { align: 'right' })
-      doc.text(formatCurrency(data.totalGeral.pacotes), pageW - margin - 6, y + 19, { align: 'right' })
+      doc.text(formatCurrency(data.totalGeral.recebido), pageW - margin - 6, y + 7, { align: 'right' })
+      doc.text(formatCurrency(data.totalGeral.pecas), pageW - margin - 6, y + 13, { align: 'right' })
+      doc.text(formatCurrency(data.totalGeral.argila), pageW - margin - 6, y + 19, { align: 'right' })
       if (data.totalGeral.custos > 0) {
         doc.setFont('helvetica', 'normal')
         doc.setTextColor(MUTED)
@@ -204,23 +182,15 @@ export default function RelatoriosPage() {
         doc.setTextColor('#B0524F')
         doc.text(`- ${formatCurrency(data.totalGeral.custos)}`, pageW - margin - 6, y + 25, { align: 'right' })
       }
-
     } else {
       if (data.pecas.length > 0) {
-        doc.setFont('helvetica', 'bold')
-        doc.setFontSize(8)
-        doc.setTextColor(MUTED)
-        doc.text('PECAS', margin, y)
-        y += 5
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(MUTED)
+        doc.text('PECAS', margin, y); y += 5
         for (const p of data.pecas) {
           if (y > 260) { doc.addPage(); y = 20 }
-          doc.setFillColor(WHITE)
-          doc.rect(margin, y, pageW - margin * 2, 10, 'F')
-          doc.setDrawColor('#E8DADA')
-          doc.line(margin, y + 10, pageW - margin, y + 10)
-          doc.setFont('helvetica', 'normal')
-          doc.setFontSize(9)
-          doc.setTextColor(TEXT)
+          doc.setFillColor(WHITE); doc.rect(margin, y, pageW - margin * 2, 10, 'F')
+          doc.setDrawColor('#E8DADA'); doc.line(margin, y + 10, pageW - margin, y + 10)
+          doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(TEXT)
           doc.text(p.name, margin + 2, y + 6.5)
           doc.setFont('helvetica', 'bold')
           doc.text(formatCurrency(p.calculated_value), pageW - margin - 2, y + 6.5, { align: 'right' })
@@ -228,22 +198,14 @@ export default function RelatoriosPage() {
         }
         y += 6
       }
-
       if (data.argilas.length > 0) {
-        doc.setFont('helvetica', 'bold')
-        doc.setFontSize(8)
-        doc.setTextColor(MUTED)
-        doc.text('ARGILA', margin, y)
-        y += 5
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(MUTED)
+        doc.text('ARGILA', margin, y); y += 5
         for (const a of data.argilas) {
           if (y > 260) { doc.addPage(); y = 20 }
-          doc.setFillColor(WHITE)
-          doc.rect(margin, y, pageW - margin * 2, 10, 'F')
-          doc.setDrawColor('#E8DADA')
-          doc.line(margin, y + 10, pageW - margin, y + 10)
-          doc.setFont('helvetica', 'normal')
-          doc.setFontSize(9)
-          doc.setTextColor(TEXT)
+          doc.setFillColor(WHITE); doc.rect(margin, y, pageW - margin * 2, 10, 'F')
+          doc.setDrawColor('#E8DADA'); doc.line(margin, y + 10, pageW - margin, y + 10)
+          doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(TEXT)
           doc.text(`${a.quantity}x ${(a.clay_types as any)?.name ?? 'Argila'}`, margin + 2, y + 6.5)
           doc.setFont('helvetica', 'bold')
           doc.text(formatCurrency(a.total_value), pageW - margin - 2, y + 6.5, { align: 'right' })
@@ -251,22 +213,14 @@ export default function RelatoriosPage() {
         }
         y += 6
       }
-
       if (data.pacotes.length > 0) {
-        doc.setFont('helvetica', 'bold')
-        doc.setFontSize(8)
-        doc.setTextColor(MUTED)
-        doc.text('PACOTES', margin, y)
-        y += 5
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(MUTED)
+        doc.text('PACOTES', margin, y); y += 5
         for (const pk of data.pacotes) {
           if (y > 260) { doc.addPage(); y = 20 }
-          doc.setFillColor(WHITE)
-          doc.rect(margin, y, pageW - margin * 2, 10, 'F')
-          doc.setDrawColor('#E8DADA')
-          doc.line(margin, y + 10, pageW - margin, y + 10)
-          doc.setFont('helvetica', 'normal')
-          doc.setFontSize(9)
-          doc.setTextColor(TEXT)
+          doc.setFillColor(WHITE); doc.rect(margin, y, pageW - margin * 2, 10, 'F')
+          doc.setDrawColor('#E8DADA'); doc.line(margin, y + 10, pageW - margin, y + 10)
+          doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(TEXT)
           doc.text(`Pacote ${pk.package_type}`, margin + 2, y + 6.5)
           doc.setFont('helvetica', 'bold')
           doc.text(formatCurrency(pk.value), pageW - margin - 2, y + 6.5, { align: 'right' })
@@ -274,18 +228,12 @@ export default function RelatoriosPage() {
         }
         y += 6
       }
-
-      doc.setFillColor(MAUVE)
-      doc.roundedRect(margin, y, pageW - margin * 2, 14, 3, 3, 'F')
-      doc.setFont('helvetica', 'bold')
-      doc.setFontSize(11)
-      doc.setTextColor(WHITE)
+      doc.setFillColor(MAUVE); doc.roundedRect(margin, y, pageW - margin * 2, 14, 3, 3, 'F')
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(WHITE)
       doc.text('Resultado se tudo fosse pago', margin + 6, y + 9.5)
       doc.text(formatCurrency(data.totalGeral.total), pageW - margin - 6, y + 9.5, { align: 'right' })
       y += 16
-      doc.setFont('helvetica', 'normal')
-      doc.setFontSize(7)
-      doc.setTextColor(MUTED)
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(MUTED)
       doc.text('(receita gerada no periodo menos custos, incluindo aberto/fechamento - nao e o caixa real)', margin, y)
     }
 
@@ -348,14 +296,15 @@ export default function RelatoriosPage() {
 
         {data && (
           <div className="space-y-4">
+            {/* Fluxo de caixa real — usa recebido (paid_at no período) */}
             <div className="bg-status-paid-bg rounded-xl p-4 space-y-2">
               <p className="text-xs font-medium tracking-widest uppercase text-status-paid-text">💰 Fluxo de caixa real</p>
               <div className="flex justify-between items-center">
                 <p className="text-sm text-status-paid-text">Recebido − Custos pagos</p>
-                <p className="font-display text-2xl text-status-paid-text">{formatCurrency(data.totalGeral.pago - data.totalGeral.custos)}</p>
+                <p className="font-display text-2xl text-status-paid-text">{formatCurrency(data.totalGeral.fluxoCaixa)}</p>
               </div>
               <p className="text-[10px] text-status-paid-text/70">
-                Recebido: {formatCurrency(data.totalGeral.pago)} · Custos: {formatCurrency(data.totalGeral.custos)}
+                Recebido: {formatCurrency(data.totalGeral.recebido)} · Custos: {formatCurrency(data.totalGeral.custos)}
               </p>
             </div>
 
@@ -378,10 +327,10 @@ export default function RelatoriosPage() {
                 <p className="font-display text-2xl text-brand-mauve">{formatCurrency(data.totalGeral.total)}</p>
               </div>
               <p className="text-[10px] text-brand-mauve/70">
-                Resultado se TUDO fosse pago (alunas em aberto e no fechamento) — não é o caixa real, é a receita gerada menos custos.
+                Resultado se TUDO fosse pago — não é o caixa real, é a receita gerada menos custos.
               </p>
               <div className="grid grid-cols-2 gap-2 text-xs text-brand-mauve/80 pt-1">
-                <p>Pago: {formatCurrency(data.totalGeral.pago)}</p>
+                <p>Recebido: {formatCurrency(data.totalGeral.recebido)}</p>
                 <p>Em aberto: {formatCurrency(data.totalGeral.aberto)}</p>
               </div>
               {data.totalGeral.custos > 0 && (
@@ -391,42 +340,42 @@ export default function RelatoriosPage() {
 
             {tipo === 'geral' ? (
               <div className="space-y-4">
-              <div className="space-y-2">
-                <h2 className="font-display text-base text-brand-text">Por canal de venda (Peças)</h2>
-                <div className="bg-white rounded-xl shadow-card divide-y divide-brand-line">
-                  {Object.entries(data.porCanal ?? {}).filter(([, v]) => v.total > 0).map(([canal, v]) => (
-                    <div key={canal} className="flex items-center justify-between px-4 py-3">
-                      <div>
-                        <p className="text-sm font-medium text-brand-text">{canal}</p>
-                        <p className="text-xs text-brand-muted">
-                          Aguardando: {formatCurrency(v.aguardando)} · Fechamento: {formatCurrency(v.fechamento)} · Pago: {formatCurrency(v.pago)}
-                        </p>
-                      </div>
-                      <p className="text-sm font-medium text-brand-text">{formatCurrency(v.total)}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div className="space-y-2">
-                <h2 className="font-display text-base text-brand-text">Por aluna</h2>
-                <div className="bg-white rounded-xl shadow-card divide-y divide-brand-line">
-                  {data.resumoPorAluna.length === 0 ? (
-                    <p className="text-sm text-brand-muted text-center py-6">Nenhum dado no período.</p>
-                  ) : (
-                    data.resumoPorAluna.map(a => (
-                      <div key={a.student_id} className="flex items-center justify-between px-4 py-3">
+                <div className="space-y-2">
+                  <h2 className="font-display text-base text-brand-text">Por canal de venda (Peças)</h2>
+                  <div className="bg-white rounded-xl shadow-card divide-y divide-brand-line">
+                    {Object.entries(data.porCanal ?? {}).filter(([, v]) => v.total > 0).map(([canal, v]) => (
+                      <div key={canal} className="flex items-center justify-between px-4 py-3">
                         <div>
-                          <p className="text-sm font-medium text-brand-text">{a.nome}</p>
+                          <p className="text-sm font-medium text-brand-text">{canal}</p>
                           <p className="text-xs text-brand-muted">
-                            Aguardando: {formatCurrency(a.totalAguardando)} · Fechamento: {formatCurrency(a.totalFechamento)} · Pago: {formatCurrency(a.totalPago)}
+                            Aguardando: {formatCurrency(v.aguardando)} · Fechamento: {formatCurrency(v.fechamento)} · Pago: {formatCurrency(v.pago)}
                           </p>
                         </div>
-                        <p className="text-sm font-medium text-brand-text">{formatCurrency(a.totalGeral)}</p>
+                        <p className="text-sm font-medium text-brand-text">{formatCurrency(v.total)}</p>
                       </div>
-                    ))
-                  )}
+                    ))}
+                  </div>
                 </div>
-              </div>
+                <div className="space-y-2">
+                  <h2 className="font-display text-base text-brand-text">Por aluna</h2>
+                  <div className="bg-white rounded-xl shadow-card divide-y divide-brand-line">
+                    {data.resumoPorAluna.length === 0 ? (
+                      <p className="text-sm text-brand-muted text-center py-6">Nenhum dado no período.</p>
+                    ) : (
+                      data.resumoPorAluna.map(a => (
+                        <div key={a.student_id} className="flex items-center justify-between px-4 py-3">
+                          <div>
+                            <p className="text-sm font-medium text-brand-text">{a.nome}</p>
+                            <p className="text-xs text-brand-muted">
+                              Aguardando: {formatCurrency(a.totalAguardando)} · Fechamento: {formatCurrency(a.totalFechamento)} · Pago: {formatCurrency(a.totalPago)}
+                            </p>
+                          </div>
+                          <p className="text-sm font-medium text-brand-text">{formatCurrency(a.totalGeral)}</p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
               </div>
             ) : (
               <div className="space-y-4">
@@ -446,7 +395,6 @@ export default function RelatoriosPage() {
                     </div>
                   </div>
                 )}
-
                 {data.argilas.length > 0 && (
                   <div className="space-y-2">
                     <h2 className="font-display text-base text-brand-text">Argila</h2>
@@ -463,7 +411,6 @@ export default function RelatoriosPage() {
                     </div>
                   </div>
                 )}
-
                 {data.pacotes.length > 0 && (
                   <div className="space-y-2">
                     <h2 className="font-display text-base text-brand-text">Pacotes</h2>
