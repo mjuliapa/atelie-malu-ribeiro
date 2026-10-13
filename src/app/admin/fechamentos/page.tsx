@@ -15,6 +15,15 @@ export default async function AdminFechamentosPage() {
     <>
       <AdminNavHeader title="Fechamentos" />
       <div className="px-4 pt-4 pb-6 space-y-4">
+        <Link href="/admin/financeiro"
+          className="flex items-center gap-2 px-4 py-3 bg-white rounded-xl shadow-card text-sm text-brand-mauve font-medium">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-4 h-4">
+            <rect x="2" y="6" width="20" height="13" rx="2" strokeLinecap="round" strokeLinejoin="round" />
+            <circle cx="12" cy="12.5" r="2.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path strokeLinecap="round" strokeLinejoin="round" d="M2 10h20" />
+          </svg>
+          Ver Financeiro
+        </Link>
         <div className="flex items-center justify-between">
           <div>
             <h1 className="font-display text-2xl text-brand-text">Fechamentos</h1>
