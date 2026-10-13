@@ -67,3 +67,45 @@ export async function DELETE(request: NextRequest) {
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
   return NextResponse.json({ ok: true })
 }
+
+export async function POST(request: NextRequest) {
+  const body = await request.json()
+  const { student_id, clay_type_id, quantity, unit_price, sale_date, notes } = body
+
+  const supabase = createSupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  )
+
+  const total_value = quantity * unit_price
+
+  // Determina status: uso interno não gera financeiro
+  const INTERNO_ID = 'ffffffff-ffff-ffff-ffff-ffffffffffff'
+  const status = student_id === INTERNO_ID ? 'paid' : 'open'
+
+  const { data: sale, error } = await supabase
+    .from('clay_sales')
+    .insert({ student_id, clay_type_id, quantity, unit_price, total_value, sale_date, notes, status })
+    .select()
+    .single()
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+
+  // Desconta do estoque
+  const { data: inv } = await supabase
+    .from('clay_inventory')
+    .select('id, current_quantity')
+    .eq('clay_type_id', clay_type_id)
+    .maybeSingle()
+
+  if (inv) {
+    const nova = Math.max(0, inv.current_quantity - quantity)
+    await supabase
+      .from('clay_inventory')
+      .update({ current_quantity: nova, updated_at: new Date().toISOString() })
+      .eq('id', inv.id)
+  }
+
+  return NextResponse.json(sale)
+}

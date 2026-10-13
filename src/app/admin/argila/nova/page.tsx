@@ -42,26 +42,26 @@ export default function NovaArgilaPage() {
   const selectedClay = clayTypes.find(c => c.id === clayTypeId)
   const total = quantity * (selectedClay?.price ?? 0)
 
-  async function handleSubmit(e: React.FormEvent) {
+    async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!studentId || !clayTypeId) return
     setLoading(true)
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
 
-    const { error } = await supabase.from('clay_sales').insert({
-      student_id: studentId,
-      clay_type_id: clayTypeId,
-      quantity,
-      unit_price: selectedClay?.price ?? 0,
-      sale_date: saleDate,
-      notes: notes.trim() || null,
-      created_by: user.id,
+    const res = await fetch('/api/admin/argila', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        student_id: studentId,
+        clay_type_id: clayTypeId,
+        quantity,
+        unit_price: selectedClay?.price ?? 0,
+        sale_date: saleDate,
+        notes: notes.trim() || null,
+      }),
     })
 
     setLoading(false)
-    if (!error) router.push('/admin/argila')
+    if (res.ok) router.push('/admin/argila')
   }
 
   return (
