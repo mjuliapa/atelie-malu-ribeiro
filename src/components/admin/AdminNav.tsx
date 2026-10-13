@@ -42,17 +42,6 @@ const adminNavItems = [
     ),
   },
   {
-    href: '/admin/financeiro',
-    label: 'Financeiro',
-    icon: (
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-5 h-5">
-        <rect x="2" y="6" width="20" height="13" rx="2" strokeLinecap="round" strokeLinejoin="round" />
-        <circle cx="12" cy="12.5" r="2.5" strokeLinecap="round" strokeLinejoin="round" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M2 10h20" />
-      </svg>
-    ),
-  },
-  {
     href: '/admin/fechamentos',
     label: 'Cobranças',
     icon: (
