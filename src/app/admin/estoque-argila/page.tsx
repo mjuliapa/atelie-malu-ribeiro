@@ -198,7 +198,7 @@ export default function EstoqueArgilaPage() {
                       {item.clay_types?.name ?? '—'}
                     </p>
                     <p className="text-xs text-brand-muted mt-0.5">
-                      {formatCurrency(item.clay_types?.price ?? 0)}/kg
+                      {formatCurrency(item.clay_types?.price ?? 0)}/pct
                     </p>
                   </div>
                   <div className="text-right">
