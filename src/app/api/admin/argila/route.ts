@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
 
   const { data: sale, error } = await supabase
     .from('clay_sales')
-    .insert({ student_id, clay_type_id, quantity, unit_price, total_value, sale_date, notes, status })
+    .insert({ student_id, clay_type_id, quantity, unit_price, sale_date, notes, status })
     .select()
     .single()
 
