@@ -5,6 +5,9 @@ import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
 
+const ADMIN_ID = 'afc3ca0e-6ee7-48b8-9eec-2d7abb509554'
+const INTERNO_ID = 'ffffffff-ffff-ffff-ffff-ffffffffffff'
+
 export default async function AdminDashboardPage() {
   const supabase = createAdminClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -26,6 +29,7 @@ export default async function AdminDashboardPage() {
     { data: pecasMes },
     { data: argilasMes },
     { data: pacotesMes },
+    { data: fechamentosPagosMes },
   ] = await Promise.all([
     supabase.from('pieces').select('student_id, calculated_value, status, firing_types(name)'),
     supabase.from('clay_sales').select('student_id, total_value, status'),
@@ -45,39 +49,47 @@ export default async function AdminDashboardPage() {
       .neq('status', 'cancelled')
       .gte('created_at', `${mesInicio}T00:00:00`)
       .lte('created_at', `${mesFim}T23:59:59`),
+    supabase.from('monthly_closings').select('total_value, status, paid_at')
+      .gte('paid_at', `${mesInicio}T00:00:00`)
+      .lte('paid_at', `${mesFim}T23:59:59`)
+      .eq('status', 'paid')
+      .neq('student_id', ADMIN_ID)
+      .neq('student_id', INTERNO_ID),
   ])
 
-  // Mesmo id usado em relatorios/route.ts — exclui a própria Malu dos totais de receita
-  const ADMIN_ID = 'afc3ca0e-6ee7-48b8-9eec-2d7abb509554'
   const NOMES_VENDA_AVULSA = ['Venda livre (sem cálculo)', 'Venda Loja', 'Venda Site', 'Venda Encomenda']
   const isVendaLivre = (p: any) => NOMES_VENDA_AVULSA.includes((p.firing_types as any)?.name)
 
-  // Mês vigente (mesmo critério do relatório: exclui a admin, filtra por piece_date/sale_date/created_at)
-  const pecasMesSemAdmin = (pecasMes ?? []).filter(p => p.student_id !== ADMIN_ID)
-  const argilasMesSemAdmin = (argilasMes ?? []).filter(a => a.student_id !== ADMIN_ID)
-  const pacotesMesSemAdmin = (pacotesMes ?? []).filter(p => p.student_id !== ADMIN_ID)
+  // Recebido no mês = fechamentos pagos no mês (por paid_at) — mesmo critério do relatório
+  const totalMesPago = (fechamentosPagosMes ?? []).reduce((s, f) => s + f.total_value, 0)
+
+  // Mês vigente — em aberto
+  const pecasMesSemAdmin = (pecasMes ?? []).filter(p => p.student_id !== ADMIN_ID && p.student_id !== INTERNO_ID)
+  const argilasMesSemAdmin = (argilasMes ?? []).filter(a => a.student_id !== ADMIN_ID && a.student_id !== INTERNO_ID)
+  const pacotesMesSemAdmin = (pacotesMes ?? []).filter(p => p.student_id !== ADMIN_ID && p.student_id !== INTERNO_ID)
 
   const queimaMes = pecasMesSemAdmin.filter(p => !isVendaLivre(p))
   const pecasMesAvulsas = pecasMesSemAdmin.filter(p => isVendaLivre(p))
-  const queimaMesPaid = queimaMes.filter(p => p.status === 'paid').reduce((s, p) => s + p.calculated_value, 0)
   const queimaMesOpen = queimaMes.filter(p => p.status === 'open').reduce((s, p) => s + p.calculated_value, 0)
   const queimaMesClosed = queimaMes.filter(p => p.status === 'closed').reduce((s, p) => s + p.calculated_value, 0)
-  const pecaMesPaid = pecasMesAvulsas.filter(p => p.status === 'paid').reduce((s, p) => s + p.calculated_value, 0)
   const pecaMesOpen = pecasMesAvulsas.filter(p => p.status === 'open').reduce((s, p) => s + p.calculated_value, 0)
-  const argilaMesPaid = argilasMesSemAdmin.filter(a => a.status === 'paid').reduce((s, a) => s + a.total_value, 0)
   const argilaMesOpen = argilasMesSemAdmin.filter(a => a.status === 'open').reduce((s, a) => s + a.total_value, 0)
   const argilaMesClosed = argilasMesSemAdmin.filter(a => a.status === 'closed').reduce((s, a) => s + a.total_value, 0)
-  const pacoteMesPaid = pacotesMesSemAdmin.filter(p => p.status === 'paid').reduce((s, p) => s + p.value, 0)
   const pacoteMesOpen = pacotesMesSemAdmin.filter(p => p.status === 'awaiting_payment').reduce((s, p) => s + p.value, 0)
   const pacoteMesClosed = pacotesMesSemAdmin.filter(p => p.status === 'closed').reduce((s, p) => s + p.value, 0)
 
-  const totalMesPago = queimaMesPaid + pecaMesPaid + argilaMesPaid + pacoteMesPaid
   const totalMesAberto = queimaMesOpen + pecaMesOpen + argilaMesOpen + pacoteMesOpen + queimaMesClosed + argilaMesClosed + pacoteMesClosed
 
-  // Acumulado histórico (mesmo critério: exclui a admin)
-  const pecasSemAdmin = (pecas ?? []).filter(p => p.student_id !== ADMIN_ID)
-  const argilasSemAdmin = (argilas ?? []).filter(a => a.student_id !== ADMIN_ID)
-  const pacotesSemAdmin = (pacotes ?? []).filter(p => p.student_id !== ADMIN_ID)
+  // Totais para breakdown do mês (informativos)
+  const queimaMesPaid = queimaMes.filter(p => p.status === 'paid').reduce((s, p) => s + p.calculated_value, 0)
+  const pecaMesPaid = pecasMesAvulsas.filter(p => p.status === 'paid').reduce((s, p) => s + p.calculated_value, 0)
+  const argilaMesPaid = argilasMesSemAdmin.filter(a => a.status === 'paid').reduce((s, a) => s + a.total_value, 0)
+  const pacoteMesPaid = pacotesMesSemAdmin.filter(p => p.status === 'paid').reduce((s, p) => s + p.value, 0)
+
+  // Acumulado histórico
+  const pecasSemAdmin = (pecas ?? []).filter(p => p.student_id !== ADMIN_ID && p.student_id !== INTERNO_ID)
+  const argilasSemAdmin = (argilas ?? []).filter(a => a.student_id !== ADMIN_ID && a.student_id !== INTERNO_ID)
+  const pacotesSemAdmin = (pacotes ?? []).filter(p => p.student_id !== ADMIN_ID && p.student_id !== INTERNO_ID)
   const queimas = pecasSemAdmin.filter(p => !isVendaLivre(p))
   const pecasAvulsas = pecasSemAdmin.filter(p => isVendaLivre(p))
   const totalHistoricoAberto =
@@ -103,7 +115,6 @@ export default async function AdminDashboardPage() {
           </p>
         </div>
 
-        {/* Mês vigente — destaque principal */}
         <div className="bg-status-paid-bg rounded-xl p-4 space-y-3">
           <p className="text-xs font-medium tracking-widest uppercase text-status-paid-text">📅 Mês vigente</p>
           <div className="grid grid-cols-2 gap-4">
@@ -124,7 +135,6 @@ export default async function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Acumulado histórico — resumo compacto */}
         <div className="bg-status-open-bg rounded-xl p-4 space-y-1">
           <p className="text-xs font-medium tracking-widest uppercase text-status-open-text">💸 Total voando (acumulado)</p>
           <p className="font-display text-3xl text-status-open-text">{formatCurrency(totalHistoricoAberto)}</p>
