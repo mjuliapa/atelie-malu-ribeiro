@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { AdminNavHeader } from '@/components/admin/AdminNav'
 import { formatCurrency } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
@@ -42,26 +41,36 @@ export default function NovaArgilaPage() {
   const selectedClay = clayTypes.find(c => c.id === clayTypeId)
   const total = quantity * (selectedClay?.price ?? 0)
 
-    async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!studentId || !clayTypeId) return
     setLoading(true)
 
-    const res = await fetch('/api/admin/argila', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        student_id: studentId,
-        clay_type_id: clayTypeId,
-        quantity,
-        unit_price: selectedClay?.price ?? 0,
-        sale_date: saleDate,
-        notes: notes.trim() || null,
-      }),
-    })
+    try {
+      const res = await fetch('/api/admin/argila', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          student_id: studentId,
+          clay_type_id: clayTypeId,
+          quantity,
+          unit_price: selectedClay?.price ?? 0,
+          sale_date: saleDate,
+          notes: notes.trim() || null,
+        }),
+      })
 
-    setLoading(false)
-    if (res.ok) router.push('/admin/argila')
+      if (res.ok) {
+        router.push('/admin/argila')
+      } else {
+        const err = await res.json()
+        alert('Erro ao salvar: ' + (err.error ?? res.status))
+      }
+    } catch (e) {
+      alert('Erro de conexão: ' + String(e))
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
