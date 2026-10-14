@@ -45,7 +45,6 @@ export default function NovaArgilaPage() {
     e.preventDefault()
     if (!studentId || !clayTypeId) return
     setLoading(true)
-
     try {
       const res = await fetch('/api/admin/argila', {
         method: 'POST',
@@ -59,7 +58,6 @@ export default function NovaArgilaPage() {
           notes: notes.trim() || null,
         }),
       })
-
       if (res.ok) {
         router.push('/admin/argila')
       } else {

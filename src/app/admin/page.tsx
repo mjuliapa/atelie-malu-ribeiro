@@ -5,9 +5,6 @@ import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
 
-const ADMIN_ID = 'afc3ca0e-6ee7-48b8-9eec-2d7abb509554'
-const INTERNO_ID = 'ffffffff-ffff-ffff-ffff-ffffffffffff'
-
 export default async function AdminDashboardPage() {
   const supabase = createAdminClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -18,6 +15,10 @@ export default async function AdminDashboardPage() {
   const now = new Date()
   const mesInicio = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
   const mesFim = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0]
+
+  // Mesmo id usado em relatorios/route.ts — exclui a própria Malu e uso interno dos totais de receita
+  const ADMIN_ID = 'afc3ca0e-6ee7-48b8-9eec-2d7abb509554'
+  const INTERNO_ID = 'ffffffff-ffff-ffff-ffff-ffffffffffff'
 
   const [
     { data: pecas },
@@ -42,13 +43,16 @@ export default async function AdminDashboardPage() {
     supabase.from('profiles').select('*', { count: 'exact', head: true })
       .eq('role', 'student').eq('status', 'active'),
     supabase.from('pieces').select('student_id, calculated_value, status, firing_types(name)')
-      .gte('piece_date', mesInicio).lte('piece_date', mesFim),
+      .gte('piece_date', mesInicio).lte('piece_date', mesFim)
+      .neq('student_id', ADMIN_ID).neq('student_id', INTERNO_ID),
     supabase.from('clay_sales').select('student_id, total_value, status')
-      .gte('sale_date', mesInicio).lte('sale_date', mesFim),
+      .gte('sale_date', mesInicio).lte('sale_date', mesFim)
+      .neq('student_id', ADMIN_ID).neq('student_id', INTERNO_ID),
     supabase.from('package_charges').select('student_id, value, status')
       .neq('status', 'cancelled')
       .gte('created_at', `${mesInicio}T00:00:00`)
-      .lte('created_at', `${mesFim}T23:59:59`),
+      .lte('created_at', `${mesFim}T23:59:59`)
+      .neq('student_id', ADMIN_ID).neq('student_id', INTERNO_ID),
     supabase.from('monthly_closings').select('total_value, status, paid_at')
       .gte('paid_at', `${mesInicio}T00:00:00`)
       .lte('paid_at', `${mesFim}T23:59:59`)
@@ -60,33 +64,31 @@ export default async function AdminDashboardPage() {
   const NOMES_VENDA_AVULSA = ['Venda livre (sem cálculo)', 'Venda Loja', 'Venda Site', 'Venda Encomenda']
   const isVendaLivre = (p: any) => NOMES_VENDA_AVULSA.includes((p.firing_types as any)?.name)
 
-  // Recebido no mês = fechamentos pagos no mês (por paid_at) — mesmo critério do relatório
+  // Mês vigente — "Recebido no mês" = fechamentos pagos no mês (igual ao relatório, por paid_at)
   const totalMesPago = (fechamentosPagosMes ?? []).reduce((s, f) => s + f.total_value, 0)
 
-  // Mês vigente — em aberto
-  const pecasMesSemAdmin = (pecasMes ?? []).filter(p => p.student_id !== ADMIN_ID && p.student_id !== INTERNO_ID)
-  const argilasMesSemAdmin = (argilasMes ?? []).filter(a => a.student_id !== ADMIN_ID && a.student_id !== INTERNO_ID)
-  const pacotesMesSemAdmin = (pacotesMes ?? []).filter(p => p.student_id !== ADMIN_ID && p.student_id !== INTERNO_ID)
+  // Breakdown por categoria (para exibição detalhada)
+  const pecasMesSemAdmin = pecasMes ?? []
+  const argilasMesSemAdmin = argilasMes ?? []
+  const pacotesMesSemAdmin = pacotesMes ?? []
 
   const queimaMes = pecasMesSemAdmin.filter(p => !isVendaLivre(p))
   const pecasMesAvulsas = pecasMesSemAdmin.filter(p => isVendaLivre(p))
+  const queimaMesPaid = queimaMes.filter(p => p.status === 'paid').reduce((s, p) => s + p.calculated_value, 0)
   const queimaMesOpen = queimaMes.filter(p => p.status === 'open').reduce((s, p) => s + p.calculated_value, 0)
   const queimaMesClosed = queimaMes.filter(p => p.status === 'closed').reduce((s, p) => s + p.calculated_value, 0)
+  const pecaMesPaid = pecasMesAvulsas.filter(p => p.status === 'paid').reduce((s, p) => s + p.calculated_value, 0)
   const pecaMesOpen = pecasMesAvulsas.filter(p => p.status === 'open').reduce((s, p) => s + p.calculated_value, 0)
+  const argilaMesPaid = argilasMesSemAdmin.filter(a => a.status === 'paid').reduce((s, a) => s + a.total_value, 0)
   const argilaMesOpen = argilasMesSemAdmin.filter(a => a.status === 'open').reduce((s, a) => s + a.total_value, 0)
   const argilaMesClosed = argilasMesSemAdmin.filter(a => a.status === 'closed').reduce((s, a) => s + a.total_value, 0)
+  const pacoteMesPaid = pacotesMesSemAdmin.filter(p => p.status === 'paid').reduce((s, p) => s + p.value, 0)
   const pacoteMesOpen = pacotesMesSemAdmin.filter(p => p.status === 'awaiting_payment').reduce((s, p) => s + p.value, 0)
   const pacoteMesClosed = pacotesMesSemAdmin.filter(p => p.status === 'closed').reduce((s, p) => s + p.value, 0)
 
   const totalMesAberto = queimaMesOpen + pecaMesOpen + argilaMesOpen + pacoteMesOpen + queimaMesClosed + argilaMesClosed + pacoteMesClosed
 
-  // Totais para breakdown do mês (informativos)
-  const queimaMesPaid = queimaMes.filter(p => p.status === 'paid').reduce((s, p) => s + p.calculated_value, 0)
-  const pecaMesPaid = pecasMesAvulsas.filter(p => p.status === 'paid').reduce((s, p) => s + p.calculated_value, 0)
-  const argilaMesPaid = argilasMesSemAdmin.filter(a => a.status === 'paid').reduce((s, a) => s + a.total_value, 0)
-  const pacoteMesPaid = pacotesMesSemAdmin.filter(p => p.status === 'paid').reduce((s, p) => s + p.value, 0)
-
-  // Acumulado histórico
+  // Acumulado histórico (mesmo critério: exclui a admin)
   const pecasSemAdmin = (pecas ?? []).filter(p => p.student_id !== ADMIN_ID && p.student_id !== INTERNO_ID)
   const argilasSemAdmin = (argilas ?? []).filter(a => a.student_id !== ADMIN_ID && a.student_id !== INTERNO_ID)
   const pacotesSemAdmin = (pacotes ?? []).filter(p => p.student_id !== ADMIN_ID && p.student_id !== INTERNO_ID)
@@ -115,6 +117,7 @@ export default async function AdminDashboardPage() {
           </p>
         </div>
 
+        {/* Mês vigente — destaque principal */}
         <div className="bg-status-paid-bg rounded-xl p-4 space-y-3">
           <p className="text-xs font-medium tracking-widest uppercase text-status-paid-text">📅 Mês vigente</p>
           <div className="grid grid-cols-2 gap-4">
@@ -135,6 +138,7 @@ export default async function AdminDashboardPage() {
           </div>
         </div>
 
+        {/* Acumulado histórico — resumo compacto */}
         <div className="bg-status-open-bg rounded-xl p-4 space-y-1">
           <p className="text-xs font-medium tracking-widest uppercase text-status-open-text">💸 Total voando (acumulado)</p>
           <p className="font-display text-3xl text-status-open-text">{formatCurrency(totalHistoricoAberto)}</p>
