@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createClient } from '@/lib/supabase/client'
 import { AdminNavHeader } from '@/components/admin/AdminNav'
 import { formatCurrency } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
@@ -46,6 +47,9 @@ export default function NovaArgilaPage() {
     if (!studentId || !clayTypeId) return
     setLoading(true)
     try {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { setLoading(false); return }
       const res = await fetch('/api/admin/argila', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -56,6 +60,7 @@ export default function NovaArgilaPage() {
           unit_price: selectedClay?.price ?? 0,
           sale_date: saleDate,
           notes: notes.trim() || null,
+          created_by: user.id,
         }),
       })
       if (res.ok) {

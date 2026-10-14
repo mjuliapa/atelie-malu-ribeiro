@@ -13,7 +13,6 @@ export async function GET(request: NextRequest) {
     { auth: { autoRefreshToken: false, persistSession: false } }
   )
 
-  // busca argilas de um fechamento específico via clay_closing_items
   if (closingId) {
     const { data, error } = await supabase
       .from('clay_closing_items')
@@ -46,6 +45,7 @@ export async function GET(request: NextRequest) {
   const { data } = await query
   return NextResponse.json(data ?? [])
 }
+
 export async function DELETE(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const id = searchParams.get('id')
@@ -70,7 +70,7 @@ export async function DELETE(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const body = await request.json()
-  const { student_id, clay_type_id, quantity, unit_price, sale_date, notes } = body
+  const { student_id, clay_type_id, quantity, unit_price, sale_date, notes, created_by } = body
 
   const supabase = createSupabaseClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -78,21 +78,17 @@ export async function POST(request: NextRequest) {
     { auth: { autoRefreshToken: false, persistSession: false } }
   )
 
-  const total_value = quantity * unit_price
-
-  // Determina status: uso interno não gera financeiro
   const INTERNO_ID = 'ffffffff-ffff-ffff-ffff-ffffffffffff'
   const status = student_id === INTERNO_ID ? 'paid' : 'open'
 
   const { data: sale, error } = await supabase
     .from('clay_sales')
-    .insert({ student_id, clay_type_id, quantity, unit_price, sale_date, notes, status })
+    .insert({ student_id, clay_type_id, quantity, unit_price, sale_date, notes, status, created_by })
     .select()
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
 
-  // Desconta do estoque
   const { data: inv } = await supabase
     .from('clay_inventory')
     .select('id, current_quantity')
