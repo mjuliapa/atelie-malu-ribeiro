@@ -4,12 +4,12 @@ import './globals.css'
 export const metadata: Metadata = {
   title: 'Ateliê Malu Ribeiro',
   description: 'Cerâmica autoral — plataforma de gestão',
-  manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
     title: 'Ateliê Malu',
   },
+  formatDetection: { telephone: false },
   openGraph: {
     title: 'Ateliê Malu Ribeiro',
     description: 'Cerâmica autoral',
