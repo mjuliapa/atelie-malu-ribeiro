@@ -141,7 +141,7 @@ export default function EstoqueArgilaPage() {
             <div className="flex gap-2">
               <input
                 type="number"
-                placeholder="Quantidade inicial (kg)"
+                placeholder="Quantidade inicial (pacotes)"
                 value={formQty}
                 onChange={e => setFormQty(e.target.value)}
                 className="flex-1 px-3 py-2 rounded-lg border border-brand-line text-sm"
@@ -203,7 +203,7 @@ export default function EstoqueArgilaPage() {
                   </div>
                   <div className="text-right">
                     <p className={`text-lg font-display font-medium ${statusColor(item)}`}>
-                      {item.current_quantity} kg
+                      {item.current_quantity} pct
                     </p>
                     <p className={`text-xs font-medium ${statusColor(item)}`}>
                       {statusLabel(item)}
@@ -230,7 +230,7 @@ export default function EstoqueArgilaPage() {
                     />
                   </div>
                   <p className="text-xs text-brand-muted mt-1">
-                    Inicial: {item.initial_quantity} kg
+                    Inicial: {item.initial_quantity} pct
                     {item.notes ? ` · ${item.notes}` : ''}
                   </p>
                 </div>
@@ -242,7 +242,7 @@ export default function EstoqueArgilaPage() {
                     <div className="flex gap-2">
                       <input
                         type="number"
-                        placeholder="Nova quantidade (kg)"
+                        placeholder="Nova quantidade (pacotes)"
                         value={adjustQty}
                         onChange={e => setAdjustQty(e.target.value)}
                         className="flex-1 px-3 py-2 rounded-lg border border-brand-line text-sm"
