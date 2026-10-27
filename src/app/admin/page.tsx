@@ -44,7 +44,7 @@ export default async function AdminDashboardPage() {
       .eq('role', 'student').eq('status', 'active'),
     supabase.from('pieces').select('student_id, calculated_value, status, firing_types(name)')
       .gte('piece_date', mesInicio).lte('piece_date', mesFim)
-      .neq('student_id', ADMIN_ID).neq('student_id', INTERNO_ID),
+      .neq('student_id', INTERNO_ID),
     supabase.from('clay_sales').select('student_id, total_value, status')
       .gte('sale_date', mesInicio).lte('sale_date', mesFim)
       .neq('student_id', ADMIN_ID).neq('student_id', INTERNO_ID),
@@ -64,11 +64,21 @@ export default async function AdminDashboardPage() {
   const NOMES_VENDA_AVULSA = ['Venda livre (sem cálculo)', 'Venda Loja', 'Venda Site', 'Venda Encomenda']
   const isVendaLivre = (p: any) => NOMES_VENDA_AVULSA.includes((p.firing_types as any)?.name)
 
-  // Mês vigente — "Recebido no mês" = fechamentos pagos no mês (igual ao relatório, por paid_at)
-  const totalMesPago = (fechamentosPagosMes ?? []).reduce((s, f) => s + f.total_value, 0)
+  // Vendas Loja/Site/Encomenda são gravadas com student_id = admin; essas entram nos totais
+  type PecaRow = { student_id: string; firing_types: unknown }
+  const contaPeca = (p: PecaRow) =>
+    p.student_id !== INTERNO_ID && (p.student_id !== ADMIN_ID || isVendaLivre(p))
+  const isVendaCliente = (p: PecaRow) => p.student_id === ADMIN_ID && isVendaLivre(p)
 
   // Breakdown por categoria (para exibição detalhada)
-  const pecasMesSemAdmin = pecasMes ?? []
+  const pecasMesSemAdmin = (pecasMes ?? []).filter(contaPeca)
+
+  // Mês vigente — "Recebido no mês" = fechamentos pagos no mês (por paid_at)
+  // + vendas a clientes (Loja/Site/Encomenda) pagas, que não passam por fechamento
+  const vendasClienteMesPagas = pecasMesSemAdmin
+    .filter(p => isVendaCliente(p) && p.status === 'paid')
+    .reduce((s, p) => s + p.calculated_value, 0)
+  const totalMesPago = (fechamentosPagosMes ?? []).reduce((s, f) => s + f.total_value, 0) + vendasClienteMesPagas
   const argilasMesSemAdmin = argilasMes ?? []
   const pacotesMesSemAdmin = pacotesMes ?? []
 
@@ -89,7 +99,7 @@ export default async function AdminDashboardPage() {
   const totalMesAberto = queimaMesOpen + pecaMesOpen + argilaMesOpen + pacoteMesOpen + queimaMesClosed + argilaMesClosed + pacoteMesClosed
 
   // Acumulado histórico (mesmo critério: exclui a admin)
-  const pecasSemAdmin = (pecas ?? []).filter(p => p.student_id !== ADMIN_ID && p.student_id !== INTERNO_ID)
+  const pecasSemAdmin = (pecas ?? []).filter(contaPeca)
   const argilasSemAdmin = (argilas ?? []).filter(a => a.student_id !== ADMIN_ID && a.student_id !== INTERNO_ID)
   const pacotesSemAdmin = (pacotes ?? []).filter(p => p.student_id !== ADMIN_ID && p.student_id !== INTERNO_ID)
   const queimas = pecasSemAdmin.filter(p => !isVendaLivre(p))

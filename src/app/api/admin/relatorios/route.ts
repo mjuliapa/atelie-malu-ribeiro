@@ -4,6 +4,12 @@ import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 const ADMIN_ID = 'afc3ca0e-6ee7-48b8-9eec-2d7abb509554'
 const INTERNO_ID = 'ffffffff-ffff-ffff-ffff-ffffffffffff'
 
+const VENDAS_AVULSAS = ['Venda livre (sem cálculo)', 'Venda Loja', 'Venda Site', 'Venda Encomenda']
+function isVendaAvulsa(nome: string | undefined) {
+  const n = (nome ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  return VENDAS_AVULSAS.some(v => v.normalize('NFD').replace(/[\u0300-\u036f]/g, '') === n)
+}
+
 function getSupabase() {
   return createSupabaseClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -30,10 +36,12 @@ export async function GET(request: NextRequest) {
     .select('id, name, calculated_value, status, piece_date, student_id, profiles:student_id(full_name), firing_types(name)')
     .gte('piece_date', from)
     .lte('piece_date', to)
-    .neq('student_id', ADMIN_ID)
     .neq('student_id', INTERNO_ID)
   if (studentId) pecasQuery = pecasQuery.eq('student_id', studentId)
-  const { data: pecas } = await pecasQuery
+  const { data: pecasRaw } = await pecasQuery
+  // Vendas Loja/Site/Encomenda são gravadas com student_id = admin; só essas entram
+  const pecas = (pecasRaw ?? []).filter(p =>
+    p.student_id !== ADMIN_ID || isVendaAvulsa((p.firing_types as { name?: string } | null)?.name))
 
   // Argila no período
   let argilaQuery = supabase
@@ -107,7 +115,11 @@ export async function GET(request: NextRequest) {
   if (studentId) fechamentosPagosQuery = fechamentosPagosQuery.eq('student_id', studentId)
   const { data: fechamentosPagos } = await fechamentosPagosQuery
 
-  const recebido = (fechamentosPagos ?? []).reduce((s, f) => s + f.total_value, 0)
+  // Vendas a clientes (Loja/Site/Encomenda) pagas não passam por fechamento
+  const vendasClientePagas = pecas
+    .filter(p => p.student_id === ADMIN_ID && p.status === 'paid')
+    .reduce((s, p) => s + p.calculated_value, 0)
+  const recebido = (fechamentosPagos ?? []).reduce((s, f) => s + f.total_value, 0) + vendasClientePagas
 
   // Agregação por aluna
   const porAluna: Record<string, {
@@ -152,8 +164,10 @@ export async function GET(request: NextRequest) {
     Encomenda: { aguardando: 0, fechamento: 0, pago: 0, total: 0 },
   }
 
-  for (const p of pecas ?? []) {
-    const nome = (p.profiles as any)?.full_name ?? 'Sem nome'
+  for (const p of pecas) {
+    const nome = p.student_id === ADMIN_ID
+      ? 'Clientes (Loja/Site/Encomenda)'
+      : (p.profiles as any)?.full_name ?? 'Sem nome'
     const a = ensureAluna(p.student_id, nome)
     a.totalPecas += p.calculated_value
     a.totalGeral += p.calculated_value
@@ -204,7 +218,7 @@ export async function GET(request: NextRequest) {
     .sort((x, y) => y.totalGeral - x.totalGeral)
 
   const totalGeral = {
-    pecas: (pecas ?? []).reduce((s, p) => s + p.calculated_value, 0),
+    pecas: pecas.reduce((s, p) => s + p.calculated_value, 0),
     argila: (argilas ?? []).reduce((s, c) => s + c.total_value, 0),
     pacotes: (pacotes ?? []).reduce((s, p) => s + p.value, 0),
     custos: totalCustos,
@@ -219,7 +233,7 @@ export async function GET(request: NextRequest) {
 
   return NextResponse.json({
     periodo: { from, to },
-    pecas: pecas ?? [],
+    pecas,
     argilas: argilas ?? [],
     pacotes: pacotes ?? [],
     fechamentos: fechamentos ?? [],
