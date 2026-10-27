@@ -4,7 +4,7 @@ import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 const ADMIN_ID = 'afc3ca0e-6ee7-48b8-9eec-2d7abb509554'
 const INTERNO_ID = 'ffffffff-ffff-ffff-ffff-ffffffffffff'
 
-const VENDAS_AVULSAS = ['Venda livre (sem cálculo)', 'Venda Loja', 'Venda Site', 'Venda Encomenda']
+const VENDAS_AVULSAS = ['Venda livre (sem cálculo)', 'Venda Loja', 'Venda Site', 'Venda Encomenda', 'Venda Workshop Interno', 'Venda Workshop Externo']
 function isVendaAvulsa(nome: string | undefined) {
   const n = (nome ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
   return VENDAS_AVULSAS.some(v => v.normalize('NFD').replace(/[\u0300-\u036f]/g, '') === n)
@@ -152,6 +152,8 @@ export async function GET(request: NextRequest) {
     'Venda Loja': 'Loja',
     'Venda Site': 'Site',
     'Venda Encomenda': 'Encomenda',
+    'Venda Workshop Interno': 'Workshop interno',
+    'Venda Workshop Externo': 'Workshop externo',
   }
   function semAcento(s: string) {
     return (s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -162,11 +164,13 @@ export async function GET(request: NextRequest) {
     Loja: { aguardando: 0, fechamento: 0, pago: 0, total: 0 },
     Site: { aguardando: 0, fechamento: 0, pago: 0, total: 0 },
     Encomenda: { aguardando: 0, fechamento: 0, pago: 0, total: 0 },
+    'Workshop interno': { aguardando: 0, fechamento: 0, pago: 0, total: 0 },
+    'Workshop externo': { aguardando: 0, fechamento: 0, pago: 0, total: 0 },
   }
 
   for (const p of pecas) {
     const nome = p.student_id === ADMIN_ID
-      ? 'Clientes (Loja/Site/Encomenda)'
+      ? 'Clientes (Loja/Site/Encomenda/Workshop)'
       : (p.profiles as any)?.full_name ?? 'Sem nome'
     const a = ensureAluna(p.student_id, nome)
     a.totalPecas += p.calculated_value

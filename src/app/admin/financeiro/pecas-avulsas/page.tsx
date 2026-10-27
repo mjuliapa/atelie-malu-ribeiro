@@ -11,6 +11,8 @@ const CANAL_NOME: Record<string, string> = {
   'Venda Loja': 'Loja',
   'Venda Site': 'Site',
   'Venda Encomenda': 'Encomenda',
+  'Venda Workshop Interno': 'Workshop interno',
+  'Venda Workshop Externo': 'Workshop externo',
 }
 
 function semAcento(s: string) {
@@ -29,7 +31,7 @@ type Peca = {
 
 export default function PecasAvulsasPage() {
   const [pecas, setPecas] = useState<Peca[]>([])
-  const [canal, setCanal] = useState<'all' | 'Aluna' | 'Loja' | 'Site' | 'Encomenda'>('all')
+  const [canal, setCanal] = useState<'all' | 'Aluna' | 'Loja' | 'Site' | 'Encomenda' | 'Workshop interno' | 'Workshop externo'>('all')
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
 
@@ -74,7 +76,7 @@ export default function PecasAvulsasPage() {
           className="w-full px-4 py-3 rounded-xl border border-brand-line bg-white text-brand-text focus:outline-none focus:border-brand-mauve" />
 
         <div className="flex gap-2 overflow-x-auto pb-1">
-          {(['all', 'Aluna', 'Loja', 'Site', 'Encomenda'] as const).map(c => (
+          {(['all', 'Aluna', 'Loja', 'Site', 'Encomenda', 'Workshop interno', 'Workshop externo'] as const).map(c => (
             <button key={c} onClick={() => setCanal(c)}
               className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
                 canal === c ? 'bg-brand-ink text-brand-cream' : 'bg-white text-brand-muted border border-brand-line'

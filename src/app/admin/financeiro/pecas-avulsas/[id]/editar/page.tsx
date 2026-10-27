@@ -10,6 +10,8 @@ const CANAL_NOME: Record<string, string> = {
   'Venda Loja': 'Loja',
   'Venda Site': 'Site',
   'Venda Encomenda': 'Encomenda',
+  'Venda Workshop Interno': 'Workshop interno',
+  'Venda Workshop Externo': 'Workshop externo',
 }
 
 const NOME_POR_CANAL: Record<string, string> = {
@@ -17,6 +19,8 @@ const NOME_POR_CANAL: Record<string, string> = {
   Loja: 'Venda Loja',
   Site: 'Venda Site',
   Encomenda: 'Venda Encomenda',
+  'Workshop interno': 'Venda Workshop Interno',
+  'Workshop externo': 'Venda Workshop Externo',
 }
 
 function semAcento(s: string) {
@@ -120,7 +124,7 @@ export default function EditarPecaAvulsaPage() {
           <div>
             <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-2">Canal de venda</label>
             <div className="grid grid-cols-2 gap-2">
-              {(['Aluna', 'Loja', 'Site', 'Encomenda'] as const).map(c => (
+              {(['Aluna', 'Loja', 'Site', 'Encomenda', 'Workshop interno', 'Workshop externo'] as const).map(c => (
                 <button key={c} type="button" onClick={() => setCanal(c)}
                   className={`py-3 rounded-xl border text-sm font-medium transition-colors ${
                     canal === c ? 'border-brand-mauve bg-brand-blush text-brand-mauve' : 'border-brand-line bg-white text-brand-text'

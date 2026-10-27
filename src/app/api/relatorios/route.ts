@@ -118,6 +118,7 @@ export async function GET(request: NextRequest) {
   const NOMES_VENDA_AVULSA: Record<string, string> = {
     'Venda livre (sem cálculo)': 'Aluna',
     'Venda Loja': 'Loja', 'Venda Site': 'Site', 'Venda Encomenda': 'Encomenda',
+    'Venda Workshop Interno': 'Workshop interno', 'Venda Workshop Externo': 'Workshop externo',
   }
   function semAcento(s: string) {
     return (s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
@@ -128,6 +129,8 @@ export async function GET(request: NextRequest) {
     Loja: { aguardando: 0, fechamento: 0, pago: 0, total: 0 },
     Site: { aguardando: 0, fechamento: 0, pago: 0, total: 0 },
     Encomenda: { aguardando: 0, fechamento: 0, pago: 0, total: 0 },
+    'Workshop interno': { aguardando: 0, fechamento: 0, pago: 0, total: 0 },
+    'Workshop externo': { aguardando: 0, fechamento: 0, pago: 0, total: 0 },
   }
 
   for (const p of pecas ?? []) {

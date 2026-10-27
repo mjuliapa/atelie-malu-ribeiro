@@ -32,7 +32,7 @@ export default async function FinanceiroPage() {
       .lte('created_at', `${mesFim}T23:59:59`),
   ])
 
-  const NOMES_VENDA_AVULSA = ['Venda livre (sem cálculo)', 'Venda Loja', 'Venda Site', 'Venda Encomenda']
+  const NOMES_VENDA_AVULSA = ['Venda livre (sem cálculo)', 'Venda Loja', 'Venda Site', 'Venda Encomenda', 'Venda Workshop Interno', 'Venda Workshop Externo']
   const isVendaLivre = (p: any) => NOMES_VENDA_AVULSA.includes((p.firing_types as any)?.name)
   const queimaPecas = (pecas ?? []).filter(p => !isVendaLivre(p))
   const vendaLivrePecas = (pecas ?? []).filter(p => isVendaLivre(p))
@@ -49,7 +49,7 @@ export default async function FinanceiroPage() {
   const pacoteOpen = (pacotes ?? []).filter(p => p.status === 'awaiting_payment').reduce((s, p) => s + p.value, 0)
   const pacotePaid = (pacotes ?? []).filter(p => p.status === 'paid').reduce((s, p) => s + p.value, 0)
 
-  const NOMES_VENDA_AVULSA_FIN = ['Venda livre (sem cálculo)', 'Venda Loja', 'Venda Site', 'Venda Encomenda']
+  const NOMES_VENDA_AVULSA_FIN = ['Venda livre (sem cálculo)', 'Venda Loja', 'Venda Site', 'Venda Encomenda', 'Venda Workshop Interno', 'Venda Workshop Externo']
   const isVendaLivreFin = (p: any) => NOMES_VENDA_AVULSA_FIN.includes((p.firing_types as any)?.name)
 
   const queimaMes = (pecasMes ?? []).filter(p => !isVendaLivreFin(p))

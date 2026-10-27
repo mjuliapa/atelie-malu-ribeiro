@@ -13,13 +13,19 @@ const CANAIS = [
   { id: 'loja', label: 'Loja', icon: '🏪' },
   { id: 'site', label: 'Site', icon: '🌐' },
   { id: 'encomenda', label: 'Encomenda', icon: '📦' },
+  { id: 'workshop_interno', label: 'Workshop interno', icon: '🎨' },
+  { id: 'workshop_externo', label: 'Workshop externo', icon: '🏢' },
 ] as const
+
+type Canal = (typeof CANAIS)[number]['id']
 
 const FIRING_TYPE_BY_CANAL: Record<string, string> = {
   aluna: 'Venda livre (sem cálculo)',
   loja: 'Venda Loja',
   site: 'Venda Site',
   encomenda: 'Venda Encomenda',
+  workshop_interno: 'Venda Workshop Interno',
+  workshop_externo: 'Venda Workshop Externo',
 }
 
 function cn(...classes: (string | boolean | undefined)[]) {
@@ -31,7 +37,12 @@ function NovaPecaAvulsaContent() {
   const searchParams = useSearchParams()
   const alunaParam = searchParams.get('aluna')
 
-  const [canal, setCanal] = useState<'aluna' | 'loja' | 'site' | 'encomenda'>(alunaParam ? 'aluna' : 'loja')
+  const canalParam = searchParams.get('canal')
+  const canalInicial: Canal = alunaParam
+    ? 'aluna'
+    : CANAIS.some(c => c.id === canalParam) ? (canalParam as Canal) : 'loja'
+  const [canal, setCanal] = useState<Canal>(canalInicial)
+  const isWorkshop = canal === 'workshop_interno' || canal === 'workshop_externo'
   const [students, setStudents] = useState<Student[]>([])
   const [firingTypes, setFiringTypes] = useState<{id: string; name: string}[]>([])
   const [search, setSearch] = useState('')
@@ -58,7 +69,7 @@ function NovaPecaAvulsaContent() {
   )
 
   const valorNum = parseFloat(valor) || 0
-  const valorTotal = valorNum * quantity
+  const valorTotal = valorNum * (isWorkshop ? 1 : quantity)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -97,7 +108,7 @@ if (!firingType) {
 
     const finalName = canal === 'aluna'
       ? (quantity > 1 ? `${quantity}x ${name.trim()}` : name.trim())
-      : `[Cliente: ${clienteNome.trim()}] ${quantity > 1 ? `${quantity}x ` : ''}${name.trim()}`
+      : `[Cliente: ${clienteNome.trim()}] ${!isWorkshop && quantity > 1 ? `${quantity}x ` : ''}${name.trim()}`
 
     // Para canais não-aluna, usa o próprio usuário logado (admin) como student_id —
     // já que a FK exige um profile válido, mas o nome real do cliente fica no campo name
@@ -187,20 +198,25 @@ if (res.ok) {
             </div>
           ) : (
             <div>
-              <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-1.5">Nome do cliente</label>
+              <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-1.5">
+                {isWorkshop ? 'Cliente / empresa' : 'Nome do cliente'}
+              </label>
               <input required value={clienteNome} onChange={e => setClienteNome(e.target.value)}
-                placeholder="Nome de quem comprou"
+                placeholder={isWorkshop ? 'Ex: Sankhia, Aniversário da Ana' : 'Nome de quem comprou'}
                 className="w-full px-4 py-3 rounded-xl border border-brand-line bg-white text-brand-text focus:outline-none focus:border-brand-mauve" />
             </div>
           )}
 
           <div>
-            <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-1.5">Nome da peça</label>
+            <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-1.5">
+              {isWorkshop ? 'Descrição' : 'Nome da peça'}
+            </label>
             <input required value={name} onChange={e => setName(e.target.value)}
-              placeholder="Ex: Caneca, Vaso pequeno"
+              placeholder={isWorkshop ? 'Ex: Workshop de modelagem' : 'Ex: Caneca, Vaso pequeno'}
               className="w-full px-4 py-3 rounded-xl border border-brand-line bg-white text-brand-text focus:outline-none focus:border-brand-mauve" />
           </div>
 
+          {!isWorkshop && (
           <div>
             <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-1.5">Quantidade</label>
             <div className="flex items-center gap-4">
@@ -215,10 +231,11 @@ if (res.ok) {
               </button>
             </div>
           </div>
+          )}
 
           <div>
             <label className="block text-xs font-medium tracking-widest uppercase text-brand-muted mb-1.5">
-              Valor unitário (R$)
+              {isWorkshop ? 'Valor fechado (R$)' : 'Valor unitário (R$)'}
             </label>
             <input type="number" min="0" step="0.01" required value={valor} onChange={e => setValor(e.target.value)}
               placeholder="0,00"
@@ -234,7 +251,7 @@ if (res.ok) {
           {valorTotal > 0 && (
             <div className="bg-brand-blush rounded-xl p-4 flex justify-between items-center">
               <p className="text-sm text-brand-mauve">
-                {quantity > 1 ? `${quantity}× ${formatCurrency(valorNum)}` : 'Total'}
+                {!isWorkshop && quantity > 1 ? `${quantity}× ${formatCurrency(valorNum)}` : 'Total'}
               </p>
               <p className="font-display text-2xl text-brand-mauve">{formatCurrency(valorTotal)}</p>
             </div>

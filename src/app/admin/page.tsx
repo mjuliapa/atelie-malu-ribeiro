@@ -61,7 +61,7 @@ export default async function AdminDashboardPage() {
       .neq('student_id', INTERNO_ID),
   ])
 
-  const NOMES_VENDA_AVULSA = ['Venda livre (sem cálculo)', 'Venda Loja', 'Venda Site', 'Venda Encomenda']
+  const NOMES_VENDA_AVULSA = ['Venda livre (sem cálculo)', 'Venda Loja', 'Venda Site', 'Venda Encomenda', 'Venda Workshop Interno', 'Venda Workshop Externo']
   const isVendaLivre = (p: any) => NOMES_VENDA_AVULSA.includes((p.firing_types as any)?.name)
 
   // Vendas Loja/Site/Encomenda são gravadas com student_id = admin; essas entram nos totais
@@ -89,6 +89,9 @@ export default async function AdminDashboardPage() {
   const queimaMesClosed = queimaMes.filter(p => p.status === 'closed').reduce((s, p) => s + p.calculated_value, 0)
   const pecaMesPaid = pecasMesAvulsas.filter(p => p.status === 'paid').reduce((s, p) => s + p.calculated_value, 0)
   const pecaMesOpen = pecasMesAvulsas.filter(p => p.status === 'open').reduce((s, p) => s + p.calculated_value, 0)
+  const isWorkshop = (p: PecaRow) =>
+    ((p.firing_types as { name?: string } | null)?.name ?? '').startsWith('Venda Workshop')
+  const workshopMes = pecasMesAvulsas.filter(p => isWorkshop(p) && (p.status === 'paid' || p.status === 'open')).reduce((s, p) => s + p.calculated_value, 0)
   const argilaMesPaid = argilasMesSemAdmin.filter(a => a.status === 'paid').reduce((s, a) => s + a.total_value, 0)
   const argilaMesOpen = argilasMesSemAdmin.filter(a => a.status === 'open').reduce((s, a) => s + a.total_value, 0)
   const argilaMesClosed = argilasMesSemAdmin.filter(a => a.status === 'closed').reduce((s, a) => s + a.total_value, 0)
@@ -143,8 +146,9 @@ export default async function AdminDashboardPage() {
           <div className="grid grid-cols-2 gap-2 text-[10px] text-status-paid-text/70 border-t border-status-paid-text/20 pt-2">
             <span>🔥 Queima: {formatCurrency(queimaMesPaid + queimaMesOpen + queimaMesClosed)}</span>
             <span>🪨 Argila: {formatCurrency(argilaMesPaid + argilaMesOpen + argilaMesClosed)}</span>
-            <span>💎 Peça: {formatCurrency(pecaMesPaid + pecaMesOpen)}</span>
+            <span>💎 Peça: {formatCurrency(pecaMesPaid + pecaMesOpen - workshopMes)}</span>
             <span>🎓 Pacote: {formatCurrency(pacoteMesPaid + pacoteMesOpen + pacoteMesClosed)}</span>
+            <span>🎨 Workshop: {formatCurrency(workshopMes)}</span>
           </div>
         </div>
 
@@ -192,6 +196,10 @@ export default async function AdminDashboardPage() {
             <Link href="/admin/fechamentos/pacote"
               className="flex items-center justify-center gap-2 bg-white text-brand-text border border-brand-line px-4 py-3 rounded-xl text-sm font-medium">
               🎓 Novo pacote
+            </Link>
+            <Link href="/admin/financeiro/pecas-avulsas/nova?canal=workshop_externo"
+              className="col-span-2 flex items-center justify-center gap-2 bg-white text-brand-text border border-brand-line px-4 py-3 rounded-xl text-sm font-medium">
+              🎨 Novo workshop
             </Link>
           </div>
         </div>
